@@ -159,7 +159,7 @@ with open(log,"r") as fin:
 					spcKey = re.search('\:(.*)\"', t[1]).group(1)
 					out.append('"VMSpec":%s' % VM[spcKey])
 				except KeyError:
-					out.append('"VMSpec":%s' % [-1, -1, -1, -1])	
+					out.append('"VMSpec":%s' % [-1] * 4)
 				t[1] = '"' + spcKey + '"'
 			elif t[0] == "ResidentSetSize":
 				residentSetSize = int(t[1])
@@ -199,8 +199,8 @@ with open(log,"r") as fin:
 			# reset all the vars
 			owner = ""
 			out = []
-			findReqMem, findProj, yr2014 = False, False, False			
-			residentSetSize, diskUsg, imgSize, vmCPUCores, vmMem, vmStorage, stDate, endDate = -1, -1, -1, -1, -1, -1, -1, -1
+			[findReqMem, findProj, yr2014] = [False] * 3
+			[residentSetSize, diskUsg, imgSize, vmCPUCores, vmMem, vmStorage, stDate, endDate] = [-1] * 8
 
 with open(log+".JSON","w") as fout:
 	for out in output:
