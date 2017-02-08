@@ -1,21 +1,39 @@
 import sys
+import csv
 import re
 
-if len(sys.argv) <= 2:
-	print("please provide condor history file and OpenStack (-pre/-post) ...")
-	sys.exit(0)
+if "-pre" in sys.argv:
+	preOS = True
+elif "-post" in sys.argv:
+	preOS = False
 else:
-	log = sys.argv[2]
-	if sys.argv[1] == "-pre":
-		preOS = True
-	elif sys.argv[1] == "-post":
-		preOS = False
-	else:
-		print("incorrect OpenStack flag (-pre/-post)...")
-		sys.exit(0)
+	print("missing OpenStack flag (-pre/-post) ...")
+	sys.exit(0)
 
+csvOutput = True if "-csv" in sys.argv else False
+jsonOutput = True if "-json" in sys.argv else False
+
+if not (csvOutput or jsonOutput):
+	print("at least specify one type of output, -csv or -json ...")
+	sys.exit(0)
+	
+try:
+	log = sys.argv[sys.argv.index("-f") + 1]
+	try:
+		f = open(log, "r")
+		f.close()
+	except FileNotFoundError:
+		print("the input file specified by -f cannot be found ...")
+		sys.exit(0)
+except ValueError:
+	print("missing input flag -f ...")
+	sys.exit(0)
+except IndexError:
+	print("no file specified by -f ...")
+	sys.exit(0)
+		
 # list of fields that need no manipulation
-include = [
+implicit = [
 "JobStatus", 
 "CommittedTime", # duration of the job including suspension
 "CommittedSuspensionTime", # suspension time of the job
@@ -23,9 +41,11 @@ include = [
 "NumJobStarts",
 "RequestCpus",
 "JobStartDate",
-"CompletionDate",
-"VMName" # only available preOS
+"VMName", # only available preOS
+"CompletionDate"
 ]
+explicit = ["QDate", "Project", "Owner", "VMInstanceType", "VMInstanceName", "VMSpec", "RequestMemory", "RequestDisk", "MemoryUsage", "DiskUsage", "RemoveReason"]
+
 # the table mapping VM uuid to specifications
 VM = {
 #	VM_ID								RAM(MB)		DISK(GB)	SCRATCH(GB)		CPU
@@ -107,9 +127,6 @@ with open(log,"r") as fin:
 	yr2014 = False
 	# if proj name is not found in preOS, proj = owner
 	owner = ''
-	# to find RemoveReason
-	rmRsn = ''
-	findRmRsn = False
 	# a set to dissolve timestamp conflicts
 	ts = set()
 	content = fin.readlines()
@@ -117,7 +134,7 @@ with open(log,"r") as fin:
 		t = line.strip().split(" = ", 1)
 		# if the current line is not "*** offset ...."
 		if not re.match("\*\*\*", t[0]) :
-			if any( t[0] == x for x in include):
+			if any( t[0] == x for x in implicit):
 				pass
 			# convert QDate into millisecond and add 1 ms to avoid collision
 			elif t[0] == "QDate":
@@ -133,7 +150,7 @@ with open(log,"r") as fin:
 					yr2014 = True 
 				t[1] = str(tmp)
 			elif t[0] == "RemoveReason":
-				findRmRsn = True
+				t[1] = '"' + t[1] + '"'
 			elif t[0] == "LastRemoteHost":
 				t[0] = "VMInstanceName"
 			elif t[0] == "Owner":
@@ -215,9 +232,6 @@ with open(log,"r") as fin:
 				out.append('"MemoryUsage":%.3f' % memoUsg)	
 				# for postOS, RequestMemory = MemoryUsage if MemoryUsage!=Null else ( ImageSize + 1023 ) / 1024
 				out.append('"RequestMemory":%.3f' % ((-1 if imgSize < 0 else (imgSize + 1023) / 1024) if memoUsg < 0 else memoUsg))
-			# if no RemoveReason found, then none
-			if not findRmRsn:
-				out.append('"RemoveReason":"None"')
 			# for all years, RequestDisk = DiskUsage
 			out.append('"RequestDisk":%.3f' % diskUsg)
 			# if the job finishes, compute the duration
@@ -229,8 +243,16 @@ with open(log,"r") as fin:
 			out = []
 			[findReqMem, findProj, yr2014, findRmRsn] = [False] * 4
 			[residentSetSize, diskUsg, imgSize, vmCPUCores, vmMem, vmStorage, stDate, endDate] = [-1] * 8
-			print(output)
 
-with open(log+".JSON","w") as fout:
-	for out in output:
-		fout.write('%s' % out)
+if jsonOutput:
+	with open(log+".JSON","w") as fout:
+		for out in output:
+			fout.write('%s' % out)
+
+if csvOutput:
+	with open(log+".csv","w") as fout:
+		colName = explicit + implicit
+		w = csv.DictWriter(fout, fieldnames = colName)
+		w.writeheader()
+		for line in output:
+			w.writerow(eval(line))
