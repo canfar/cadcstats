@@ -11,5 +11,5 @@ if [ "$preOS" == "-pre" ]; then
 elif [ "$preOS" == "-post" ]; then
 	condor_history -file $condHis -af:,rh $col > $condHis".csv"
 else
-	echo "usage: $ condToCsv.sh -pre/-post $HTCONDOR_HISTORY_FILE"
+	echo "usage: $ condToCsv.sh -pre/-post \$HTCONDOR_HISTORY_FILE"
 fi	
