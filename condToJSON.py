@@ -198,7 +198,7 @@ with open(log,"r") as fin:
 			out.append( "\"" + t[0].strip() + "\":" + t[1] )
 		else:
 			if preOS and not yr2014:
-				out.append('"VMSpec":%s' % [vmMem, vmStorage, 0, vmCPUCores])
+				out.append('"VMSpec":%s' % [vmMem, 0, vmStorage, vmCPUCores])
 				out.append('"MemoryUsage":%.3f' % (imgSize / 1000))
 				if not findReqMem:
 					out.append('"RequestMemory":%i' % vmMem)
