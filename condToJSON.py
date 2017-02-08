@@ -24,7 +24,6 @@ include = [
 "RequestCpus",
 "JobStartDate",
 "CompletionDate",
-"RemoveReason",
 "VMName" # only available preOS
 ]
 # the table mapping VM uuid to specifications
@@ -108,6 +107,9 @@ with open(log,"r") as fin:
 	yr2014 = False
 	# if proj name is not found in preOS, proj = owner
 	owner = ''
+	# to find RemoveReason
+	rmRsn = ''
+	findRmRsn = False
 	# a set to dissolve timestamp conflicts
 	ts = set()
 	content = fin.readlines()
@@ -130,6 +132,8 @@ with open(log,"r") as fin:
 				if t[1] >= 1388534400000 and tmp < 1420070400000:
 					yr2014 = True 
 				t[1] = str(tmp)
+			elif t[0] == "RemoveReason":
+				findRmRsn = True
 			elif t[0] == "LastRemoteHost":
 				t[0] = "VMInstanceName"
 			elif t[0] == "Owner":
@@ -211,6 +215,9 @@ with open(log,"r") as fin:
 				out.append('"MemoryUsage":%.3f' % memoUsg)	
 				# for postOS, RequestMemory = MemoryUsage if MemoryUsage!=Null else ( ImageSize + 1023 ) / 1024
 				out.append('"RequestMemory":%.3f' % ((-1 if imgSize < 0 else (imgSize + 1023) / 1024) if memoUsg < 0 else memoUsg))
+			# if no RemoveReason found, then none
+			if not findRmRsn:
+				out.append('"RemoveReason":"None"')
 			# for all years, RequestDisk = DiskUsage
 			out.append('"RequestDisk":%.3f' % diskUsg)
 			# if the job finishes, compute the duration
@@ -218,10 +225,11 @@ with open(log,"r") as fin:
 			# change if want to merge into other format
 			output.append("{" + ",".join(out) + "}\n")
 			# reset all the vars
-			owner = ""
+			rmRsn, owner = [""] * 2
 			out = []
-			[findReqMem, findProj, yr2014] = [False] * 3
+			[findReqMem, findProj, yr2014, findRmRsn] = [False] * 4
 			[residentSetSize, diskUsg, imgSize, vmCPUCores, vmMem, vmStorage, stDate, endDate] = [-1] * 8
+			print(output)
 
 with open(log+".JSON","w") as fout:
 	for out in output:
