@@ -42,9 +42,10 @@ implicit = [
 "RequestCpus",
 "JobStartDate",
 "VMName", # only available preOS
+"RemoveReason",
 "CompletionDate"
 ]
-explicit = ["QDate", "Project", "Owner", "VMInstanceType", "VMInstanceName", "VMSpec", "RequestMemory", "RequestDisk", "MemoryUsage", "DiskUsage", "RemoveReason"]
+explicit = ["QDate", "Project", "Owner", "VMInstanceType", "VMInstanceName", "VMSpec", "RequestMemory", "RequestDisk", "MemoryUsage", "DiskUsage"]
 
 # the table mapping VM uuid to specifications
 VM = {
@@ -149,8 +150,8 @@ with open(log,"r") as fin:
 				if t[1] >= 1388534400000 and tmp < 1420070400000:
 					yr2014 = True 
 				t[1] = str(tmp)
-			elif t[0] == "RemoveReason":
-				t[1] = '"' + t[1] + '"'
+			#elif t[0] == "RemoveReason":
+			#	t[1] = '"' + t[1] + '"'
 			elif t[0] == "LastRemoteHost":
 				t[0] = "VMInstanceName"
 			elif t[0] == "Owner":
