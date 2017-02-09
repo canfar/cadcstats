@@ -61,6 +61,10 @@ with gzip.open(log, "rb") as fin:
 				tar = "\"message\":\"%s\"}" % msg.replace("\"", "\'")
 				tmp = re.sub("\"message\"\:\"(.*)\"\}$", tar, tmp)
 			tags = eval(tmp)
+			try:
+				tags.pop("path")
+			except KeyError:
+				pass
 			for x in tags:
 				if type(tags[x]) is str:
 					out.append("\"%s\":\"%s\"" % (x, tags[x]))
@@ -69,7 +73,6 @@ with gzip.open(log, "rb") as fin:
 					#	tags[x] = str(tags[x]).lower()
 					out.append("\"%s\":%s" % (x, str(tags[x])))
 			output.append("{" + ",".join(out) + "}\n")
-			print(output)
 
 if jsonOutput:
 	with open(log+".JSON" ,"w") as fout:
