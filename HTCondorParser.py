@@ -215,7 +215,7 @@ with open(log, "r", encoding='utf-8') as fin:
 					spcKey = re.search('\:(.*)\"', t[1]).group(1)
 					out.append('"VMSpec":%s' % VM[spcKey])
 				except KeyError:
-					out.append('"VMSpec":%s' % [-1] * 4)
+					out.append('"VMSpec":%s' % ([-1] * 4))
 				t[1] = '"' + spcKey + '"'
 			elif t[0] == "ResidentSetSize":
 				residentSetSize = int(t[1])
