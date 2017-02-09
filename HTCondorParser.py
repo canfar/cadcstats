@@ -112,7 +112,7 @@ VM = {
 "d67eccfe-042b-4f86-a2fc-92398ebc811b":[7680		, 0			, 30			, 1		]	
 }
 
-with open(log,"r") as fin:
+with open(log, "r", encoding='utf-8') as fin:
 	# entire output file
 	output = []
 	# each line
