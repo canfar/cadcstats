@@ -203,7 +203,7 @@ with open(log, "r", encoding='utf-8') as fin:
 			# grab Project from VMLoc, preOS
 			elif t[0] == "VMLoc" and preOS:
 				try:
-					t[1] = '"' + re.search("vospace\/([^\/]*)\/", t[1]).group(1) + '"'
+					t[1] = '"' + re.search("vospace\/([^\/]+)\/", t[1]).group(1) + '"'
 					t[0] = "Project"
 					findProj = True
 				except AttributeError:

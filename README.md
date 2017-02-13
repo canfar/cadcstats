@@ -8,4 +8,4 @@ Tools/scripts used to collect history data from CADC services.
   * ```condor-partial-es.conf```: The corresponding configuration file for Logstash.
 
 2. Tomcat
-  * ```tomcatParser.py```: Reads from tomcat gz logs and parse useful lines into "contracted" JSON / csv format
+  * ```TomcatParser.py```: Reads from tomcat gz logs and parse useful lines into "contracted" JSON / csv format
