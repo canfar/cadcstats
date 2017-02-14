@@ -309,7 +309,10 @@ with open(log, "r", encoding='utf-8') as fin:
 			out.append( "\"" + t[0].strip() + "\":" + t[1] )
 		else:
 			if preOS:# and not yr2014:
-				out.append('"Project":"%s"' % ownerProj[owner])
+				try:
+					out.append('"Project":"%s"' % ownerProj[owner])
+				except KeyError:
+					out.append('"Project":""')
 				out.append('"VMSpec.RAM":%i' % vmMem)
 				out.append('"VMSpec.DISK":%i' % vmStorage)
 				out.append('"VMSpec.CPU":%i' % vmCPUCores)
