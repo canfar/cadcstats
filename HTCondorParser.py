@@ -191,13 +191,13 @@ with open(log, "r", encoding='utf-8') as fin:
 	out = []
 	# used to calc mem usage
 	# -1 is to be handled by logstash
-	residentSetSize = -1
-	diskUsg = -1
-	imgSize = -1
-	stDate, endDate = -1, -1
+	residentSetSize = 0
+	diskUsg = 0
+	imgSize = 0
+	stDate, endDate = 0, 0
 	# used for early logs where VMInstanceType is not defined
 	# where the spec of vm is written in three separate fields
-	vmCPUCores, vmMem, vmStorage = -1, -1, -1
+	vmCPUCores, vmMem, vmStorage = 0, 0, 0
 	# for preOS logs it is possible that RequestMemory is not available in Requirements
 	# i.e.:		Requirements = (VMType =?= "nimbus_test" && Arch == "INTEL" && Memory >= 2048 && Cpus >= 1)
 	#			==> RequestMemory = 2048
@@ -289,9 +289,9 @@ with open(log, "r", encoding='utf-8') as fin:
 					out.append('"VMSpec.DISK":%i' % (VM[spcKey][1] + VM[spcKey][2]))
 					out.append('"VMSpec.CPU":%i' % VM[spcKey][3])
 				except KeyError:
-					out.append('"VMSpec.RAM":%i' % -1)
-					out.append('"VMSpec.DISK":%i' % -1)
-					out.append('"VMSpec.CPU":%i' % -1)
+					out.append('"VMSpec.RAM":%i' % 0)
+					out.append('"VMSpec.DISK":%i' % 0)
+					out.append('"VMSpec.CPU":%i' % 0)
 				t[1] = '"' + spcKey + '"'
 			elif t[0] == "ResidentSetSize":
 				residentSetSize = int(t[1])
@@ -324,17 +324,17 @@ with open(log, "r", encoding='utf-8') as fin:
 					#	out.append('"Project":%s' % owner)
 				else:
 					# for 2014, MemoryUsage = ( residentSetSize + 1023 ) / 1024
-					memoUsg = -1 if residentSetSize < 0 else (( residentSetSize + 1023 ) / 1024)
+					memoUsg = 0 if residentSetSize == 0 else (( residentSetSize + 1023 ) / 1024)
 					out.append('"MemoryUsage":%.3f' % memoUsg)
 					# for 2014, RequestMemory = MemoryUsage if MemoryUsage!=Null else ( ImageSize + 1023 ) / 1024
-					out.append('"RequestMemory":%.3f' % ((-1 if imgSize < 0 else (imgSize + 1023) / 1024) if memoUsg < 0 else memoUsg))
+					out.append('"RequestMemory":%.3f' % ((0 if imgSize == 0 else (imgSize + 1023) / 1024) if memoUsg == 0 else memoUsg))
 			# yr 2014 and postOS, fairly straightforward
 			else:
 				# for postOS, MemoryUsage = ( residentSetSize + 1023 ) / 1024
-				memoUsg = -1 if residentSetSize < 0 else (( residentSetSize + 1023 ) / 1024)
+				memoUsg = 0 if residentSetSize == 0 else (( residentSetSize + 1023 ) / 1024)
 				out.append('"MemoryUsage":%.3f' % memoUsg)	
 				# for postOS, RequestMemory = MemoryUsage if MemoryUsage!=Null else ( ImageSize + 1023 ) / 1024
-				out.append('"RequestMemory":%.3f' % ((-1 if imgSize < 0 else (imgSize + 1023) / 1024) if memoUsg < 0 else memoUsg))
+				out.append('"RequestMemory":%.3f' % ((0 if imgSize == 0 else (imgSize + 1023) / 1024) if memoUsg == 0 else memoUsg))
 			# for all years, RequestDisk = DiskUsage
 			out.append('"RequestDisk":%.3f' % diskUsg)
 			# if the job finishes, compute the duration
@@ -346,7 +346,7 @@ with open(log, "r", encoding='utf-8') as fin:
 			out = []
 			#[findReqMem, findProj, yr2014, findRmRsn] = [False] * 4
 			[findReqMem, yr2014, findRmRsn] = [False] * 3
-			[residentSetSize, diskUsg, imgSize, vmCPUCores, vmMem, vmStorage, stDate, endDate] = [-1] * 8
+			[residentSetSize, diskUsg, imgSize, vmCPUCores, vmMem, vmStorage, stDate, endDate] = [0] * 8
 
 if jsonOutput:
 	with open(log+".JSON","w") as fout:
