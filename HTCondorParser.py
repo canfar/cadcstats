@@ -192,7 +192,7 @@ with open(log, "r", encoding='utf-8') as fin:
 					except AttributeError:
 						pass
 				else:
-					r = re.search("VMType\ \=\?\=\ \"(.*)\:([^\"]*)?\"", t[1])
+					r = re.search("VMType\ \=\?\=\ \"(.+)\:([^\"]+)?\"", t[1])
 					# there are cases in history.20160304T220132 history.20150627T031409 history.20150704T171253, that we can't find Proj:VMNam in Requirements, and I will not catch this exception. 
 					if r:
 						out.append( '"Project":"%s"' % r.group(1) )
