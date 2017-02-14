@@ -45,7 +45,7 @@ implicit = [
 "RemoveReason",
 "CompletionDate"
 ]
-explicit = ["QDate", "Project", "Owner", "VMInstanceType", "VMInstanceName", "VMSpec", "RequestMemory", "RequestDisk", "MemoryUsage", "DiskUsage"]
+explicit = ["QDate", "Project", "Owner", "VMInstanceType", "VMInstanceName", "VMSpec.CPU", "VMSpec.RAM", "VMSpec.DISK", "RequestMemory", "RequestDisk", "MemoryUsage", "DiskUsage"]
 
 # the table mapping VM uuid to specifications
 VM = {
@@ -112,6 +112,72 @@ VM = {
 "d67eccfe-042b-4f86-a2fc-92398ebc811b":[7680		, 0			, 30			, 1		]	
 }
 
+ownerProj = {
+"jkavelaars":"canfar-UVic_KBOs",
+"sgwyn":"canfar-moproc",
+"durand":"canfar-HST-RW",
+"sfabbro":"canfar-ots",
+"ptsws":"canfar-ots",
+"fraserw":"canfar-UVic_KBOs",
+"lff":"canfar-ngvs",
+"gwyn":"canfar-moproc",
+"glass0":"canfar-UVic_KBOs",
+"patcote":"canfar-ngvs",
+"lauren":"canfar-ngvs",
+"jjk":"canfar-UVic_KBOs",
+"yingyu":"canfar-ngvs",
+"rpike":"canfar-UVic_KBOs",
+"nickball":"canfar-cadc",
+"woodleka":"canfar-pandas",
+"cadctest":"canfar-cadc",
+"markbooth":"canfar-debris",
+"goliaths":"canfar-cadc",
+"dschade":"canfar-cadc",
+"pritchetsupernovae":"canfar-ots",
+"ryan":"CANFAROps",
+"jroediger":"canfar-ngvs",
+"cshankm":"canfar-UVic_KBOs",
+"fabbros":"canfar-ots",
+"jouellet":"canfar-cadc",
+"jonathansick":"canfar-androphot",
+"shaimaaali":"canfar-shaimaaali",
+"johnq":"canfar-ngvs",
+"helenkirk":"canfar-jcmt",
+"canfradm":"CANFAR",
+"clare":"canfar-ots",
+"taylorm":"canfar-UVic_KBOs",
+"nhill":"canfar-cadc",
+"canfrops":"CANFAROps",
+"laurenm":"canfar-ngvs",
+"nick":"canfar-cadc",
+"layth":"canfar-ngvs",
+"jpveran":"canfar-aot",
+"caread966":"canfar-ngvs",
+"nvulic":"canfar-nvulic",
+"kwoodley":"canfar-pandas",
+"sanaz":"canfar-cfhtlens",
+"cadcauthtest1":"canfar-cadc",
+"dcolombo":"canfar-mwsynthesis",
+"fpierfed":"canfar-HST-RW",
+"echapin":"canfar-scuba2",
+"jenkinsd":"canfar-cadc",
+"brendam":"canfar-debris",
+"russell":"canfar-cadc",
+"trystynb":"canfar-ngvs",
+"davids":"canfar-cadc",
+"scott":"canfar-scuba2",
+"streeto":"canfar-streeto",
+"matthews":"canfar-debris",
+"jrseti":"canfar-seti",
+"bsibthorpe":"canfar-debris",
+"gerryharp":"canfar-seti",
+"hguy":"canfar-canarie",
+"majorb":"canfar-cadc",
+"samlawler":"canfar-debris",
+"cadcsw":"canfar-cadc",
+"canfar":"CANFAR",
+"markb":"canfar-debris"   
+}
 with open(log, "r", encoding='utf-8') as fin:
 	# entire output file
 	output = []
@@ -136,10 +202,10 @@ with open(log, "r", encoding='utf-8') as fin:
 	findReqMem = False
 	# for preOS we might not be able to find the project name in VMLoc field
 	# then proj name = owner
-	findProj = False
+	#findProj = False
 	# if it is year 2014. 2014 is different: even tho it is preOS but MemoryUsage is calculated by postOS method
 	yr2014 = False
-	# if proj name is not found in preOS, proj = owner
+	# preOS, Project is traslate through ownerProj dictionary
 	owner = ''
 	# a set to dissolve timestamp conflicts
 	ts = set()
@@ -168,7 +234,7 @@ with open(log, "r", encoding='utf-8') as fin:
 			elif t[0] == "LastRemoteHost":
 				t[0] = "VMInstanceName"
 			elif t[0] == "Owner":
-				owner = t[1]
+				owner = t[1][1:-1]
 			elif t[0] == "VMCPUCores":
 				vmCPUCores = int(t[1].replace('"', ''))
 				continue
@@ -201,21 +267,25 @@ with open(log, "r", encoding='utf-8') as fin:
 						print("Can't find Proj:VMNam at line %i" % i)
 				continue
 			# grab Project from VMLoc, preOS
-			elif t[0] == "VMLoc" and preOS:
-				try:
-					t[1] = '"' + re.search("vospace\/([^\/]+)\/", t[1]).group(1) + '"'
-					t[0] = "Project"
-					findProj = True
-				except AttributeError:
-					continue
+			#elif t[0] == "VMLoc" and preOS:
+			#	try:
+			#		t[1] = '"' + re.search("vospace\/([^\/]+)\/", t[1]).group(1) + '"'
+			#		t[0] = "Project"
+			#		findProj = True
+			#	except AttributeError:
+			#		continue
 			# from "VMInstanceType" grab the vm flavor, and translate into VMSpecs
 			elif t[0] == "VMInstanceType" and not preOS:
 				spcKey = ""
 				try:
 					spcKey = re.search('\:(.*)\"', t[1]).group(1)
-					out.append('"VMSpec":%s' % VM[spcKey])
+					out.append('"VMSpec.RAM":%i' % VM[spcKey][0])
+					out.append('"VMSpec.DISK":%i' % (VM[spcKey][1] + VM[spcKey][2]))
+					out.append('"VMSpec.CPU":%i' % VM[spcKey][3])
 				except KeyError:
-					out.append('"VMSpec":%s' % ([-1] * 4))
+					out.append('"VMSpec.RAM":%i' % -1)
+					out.append('"VMSpec.DISK":%i' % -1)
+					out.append('"VMSpec.CPU":%i' % -1)
 				t[1] = '"' + spcKey + '"'
 			elif t[0] == "ResidentSetSize":
 				residentSetSize = int(t[1])
@@ -232,13 +302,23 @@ with open(log, "r", encoding='utf-8') as fin:
 				continue
 			out.append( "\"" + t[0].strip() + "\":" + t[1] )
 		else:
-			if preOS and not yr2014:
-				out.append('"VMSpec":%s' % [vmMem, 0, vmStorage, vmCPUCores])
-				out.append('"MemoryUsage":%.3f' % (imgSize / 1000))
-				if not findReqMem:
-					out.append('"RequestMemory":%i' % vmMem)
-				if not findProj:
-					out.append('"Project":%s' % owner)
+			if preOS:# and not yr2014:
+				out.append('"Project":"%s"' % ownerProj[owner])
+				out.append('"VMSpec.RAM":%i' % vmMem)
+				out.append('"VMSpec.DISK":%i' % vmStorage)
+				out.append('"VMSpec.CPU":%i' % vmCPUCores)
+				if not yr2014:
+					out.append('"MemoryUsage":%.3f' % (imgSize / 1000))
+					if not findReqMem:
+						out.append('"RequestMemory":%i' % vmMem)
+					#if not findProj:
+					#	out.append('"Project":%s' % owner)
+				else:
+					# for 2014, MemoryUsage = ( residentSetSize + 1023 ) / 1024
+					memoUsg = -1 if residentSetSize < 0 else (( residentSetSize + 1023 ) / 1024)
+					out.append('"MemoryUsage":%.3f' % memoUsg)
+					# for 2014, RequestMemory = MemoryUsage if MemoryUsage!=Null else ( ImageSize + 1023 ) / 1024
+					out.append('"RequestMemory":%.3f' % ((-1 if imgSize < 0 else (imgSize + 1023) / 1024) if memoUsg < 0 else memoUsg))
 			# yr 2014 and postOS, fairly straightforward
 			else:
 				# for postOS, MemoryUsage = ( residentSetSize + 1023 ) / 1024
@@ -255,7 +335,8 @@ with open(log, "r", encoding='utf-8') as fin:
 			# reset all the vars
 			rmRsn, owner = [""] * 2
 			out = []
-			[findReqMem, findProj, yr2014, findRmRsn] = [False] * 4
+			#[findReqMem, findProj, yr2014, findRmRsn] = [False] * 4
+			[findReqMem, yr2014, findRmRsn] = [False] * 3
 			[residentSetSize, diskUsg, imgSize, vmCPUCores, vmMem, vmStorage, stDate, endDate] = [-1] * 8
 
 if jsonOutput:
