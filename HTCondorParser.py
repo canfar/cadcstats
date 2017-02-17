@@ -285,6 +285,8 @@ with open(log, "r", encoding='utf-8') as fin:
 				spcKey = ""
 				try:
 					spcKey = re.search('\:(.*)\"', t[1]).group(1)
+					if spcKey == "5c1ed3eb-6341-470e-92b7-5142014e7c5e" or spcKey == "12345678-6341-470e-92b7-5142014e7c5e":
+						pass
 					out.append('"VMSpec.RAM":%i' % VM[spcKey][0])
 					out.append('"VMSpec.DISK":%i' % (VM[spcKey][1] + VM[spcKey][2]))
 					out.append('"VMSpec.CPU":%i' % VM[spcKey][3])
