@@ -27,7 +27,7 @@ except IndexError:
     sys.exit(0)
 
 output = []
-
+ts = set()
 with gzip.open(log, "rb") as fin:
 	content = fin.readlines()
 	for i, line in enumerate(content):
@@ -36,7 +36,15 @@ with gzip.open(log, "rb") as fin:
 		line = line.decode("utf-8").replace("\x00", "").strip("\n")
 		if re.search("-\ END", line):
 			# append timestamp
-			out.append("\"timestamp\":%i" % int(time.mktime(time.strptime(re.match("(\d{4}\-\d{2}-\d{2}\ \d{2}\:\d{2}\:\d{2})", line).group(0), "%Y-%m-%d %H:%M:%S"))))
+			t = int(time.mktime(time.strptime(re.match("(\d{4}\-\d{2}-\d{2}\ \d{2}\:\d{2}\:\d{2})", line).group(0), "%Y-%m-%d %H:%M:%S"))) * 1000
+			k = 1
+			tmp = t
+			while tmp in ts:
+				tmp = t + k
+				k += 1
+			ts.add(tmp)
+			t = tmp
+			out.append("\"timestamp\":%i" % t)
 			# append service type
 			out.append("\"service\":\"%s\"" % re.search("\d{3}\ (\w+)\ \[", line).group(1))
 			while not re.search("(\{.*\})", line):
