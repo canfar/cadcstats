@@ -45,7 +45,7 @@ implicit = [
 "RemoveReason",
 "CompletionDate"
 ]
-explicit = ["QDate", "Project", "Owner", "VMInstanceType", "VMInstanceName", "VMSpec.CPU", "VMSpec.RAM", "VMSpec.DISK", "RequestMemory", "RequestDisk", "MemoryUsage", "DiskUsage"]
+explicit = ["QDate", "Project", "Owner", "VMInstanceType", "VMInstanceName", "VMSpec.CPU", "VMSpec.RAM", "VMSpec.DISK", "RequestMemory", "RequestDisk", "MemoryUsage", "DiskUsage", "ClusterId", "ProcId"]
 
 # the table mapping VM uuid to specifications
 VM = {
@@ -310,6 +310,13 @@ with open(log, "r", encoding='utf-8') as fin:
 				continue
 			out.append( "\"" + t[0].strip() + "\":" + t[1] )
 		else:
+			r = re.search("ClusterId\ \=\ (\d)+\ ProcId\ \=\ (\d)+", line)
+			try:
+				out.append('"ClusterId":%s' % r.group(1))
+				out.append('"ProcId":%s' % r.group(2))
+			except AttributeError:
+				out.append('"ClusterId":-1')
+				out.append('"ProcId":-1')
 			if preOS:# and not yr2014:
 				try:
 					out.append('"Project":"%s"' % ownerProj[owner])
