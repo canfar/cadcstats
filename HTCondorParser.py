@@ -321,7 +321,7 @@ with open(log, "r", encoding='utf-8') as fin:
 				continue
 			out.append( "\"" + t[0].strip() + "\":" + t[1] )
 		else:
-			r = re.search("ClusterId\ \=\ (\d)+\ ProcId\ \=\ (\d)+", line)
+			r = re.search("ClusterId\ \=\ (\d+)\ ProcId\ \=\ (\d+)", line)
 			try:
 				out.append('"ClusterId":%s' % r.group(1))
 				out.append('"ProcId":%s' % r.group(2))
