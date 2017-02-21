@@ -184,6 +184,14 @@ ownerProj = {
 "canfar":"CANFAR",
 "markb":"debris"   
 }
+
+ownerDup = {
+"gwyn":"sgwyn",
+"ssgwyn":"sgwyn",
+"jjk":"jkavelaars",
+"fabbros":"sfabbro"
+}
+
 with open(log, "r", encoding='utf-8') as fin:
 	# entire output file
 	output = []
@@ -241,6 +249,9 @@ with open(log, "r", encoding='utf-8') as fin:
 				t[0] = "VMInstanceName"
 			elif t[0] == "Owner":
 				owner = t[1][1:-1]
+				if owner in ownerDup.keys():
+					owner = owner.replace(owner, ownerDup[owner])
+					t[1] = '"' + owner + '"'
 			elif t[0] == "VMCPUCores":
 				vmCPUCores = int(t[1].replace('"', ''))
 				continue
@@ -267,7 +278,7 @@ with open(log, "r", encoding='utf-8') as fin:
 					r = re.search("VMType\ \=\?\=\ \"(.+)\:([^\"]+)?\"", t[1])
 					# there are cases in history.20160304T220132 history.20150627T031409 history.20150704T171253, that we can't find Proj:VMNam in Requirements, and I will not catch this exception. 
 					if r:
-						out.append( '"Project":"%s"' % r.group(1) )
+						out.append( '"Project":"%s"' % r.group(1).replace("canfar-", "") )
 						out.append( '"VMName":"%s"' % r.group(2) )
 					else:
 						print("Can't find Proj:VMNam at line %i" % i)
