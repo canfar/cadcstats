@@ -9,3 +9,6 @@ Tools/scripts used to collect history data from CADC services.
 
 2. Tomcat
   * ```TomcatParser.py```: Reads from tomcat gz logs and parse useful lines into "contracted" JSON / csv format
+
+3. Advanced Search
+  * ```query.sh```: For now, some very basic query from cvodb2-01:cvodb. 
