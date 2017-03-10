@@ -249,7 +249,7 @@ with open(log, "r", encoding='utf-8') as fin:
 				t[0] = "VMInstanceName"
 			elif t[0] == "Owner":
 				owner = t[1][1:-1]
-				if owner in ownerDup.keys():
+				if owner in ownerDup:
 					owner = owner.replace(owner, ownerDup[owner])
 					t[1] = '"' + owner + '"'
 			elif t[0] == "VMCPUCores":
