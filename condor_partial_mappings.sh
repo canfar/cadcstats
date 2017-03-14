@@ -28,6 +28,14 @@ curl -XPUT http://localhost:9200/logs-condor -d '
           "type": "long",
           "doc_values": true
         },
+		"ClusterId": {
+			"type": "long",
+			"doc_values": true
+		},
+		"ProcId": {
+            "type": "long",
+            "doc_values": true
+        },
 		"NumJobStarts": {
           "type": "long",
           "doc_values": true
@@ -103,10 +111,6 @@ curl -XPUT http://localhost:9200/logs-condor -d '
           "doc_values": true
         },
 		"VMSpec.DISK": {
-          "type": "long",
-          "doc_values": true
-        },
-		"VMSpec.SCRATCH": {
           "type": "long",
           "doc_values": true
         },
