@@ -18,3 +18,6 @@ Tools/scripts used to collect history data from CADC services.
   * ```adv2csv.py```: Parsing cvodb1 and cvodb2-01 advanced search query history to a csv file.
   * ```advancedsearch-es.conf```: Logstash config file.
   * ```advancedsearch_mappings.sh```: Elasticsearch mappings.
+
+TODO:
+  * Remove JSON option for all parsers. csv is more friendly (in Elasticsearch).
