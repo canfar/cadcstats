@@ -15,6 +15,7 @@ Tools/scripts used to collect history data from CADC services.
 
 4. AdvancedSearch
   * ```uws.ipynb```: Jupyter notebook that does some statistics.
+  * ```ip2dom.json```: An ip-to-domain dictionary.
   * ```adv2csv.py```: Parsing cvodb1 and cvodb2-01 advanced search query history to a csv file.
   * ```advancedsearch-es.conf```: Logstash config file.
   * ```advancedsearch_mappings.sh```: Elasticsearch mappings.
