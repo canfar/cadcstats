@@ -1,10 +1,14 @@
 #!/Users/will/anaconda3/bin/python
 
 from elasticsearch import Elasticsearch, TransportError
+from elasticsearch.helpers import scan
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import re
+from ipaddress import IPv4Address as ipv4, AddressValueError
+import time
 
 odin = 'http://odin.cadc.dao.nrc.ca:9200'
 
@@ -16,6 +20,32 @@ class Conn():
 			print("Connection incorrect!")
 			exit(0)
 		self.conn = Elasticsearch(url, timeout = timeout)
+
+def ip2dom(ip):
+	try: 
+		if ipv4(ip) >= ipv4("132.246.0.0") and ipv4(ip) <= ipv4("132.246.255.255"):
+			if (ipv4(ip) >= ipv4("132.246.195.0") and ipv4(ip) <= ipv4("132.246.195.24")) or (ipv4(ip) >= ipv4("132.246.217.0") and ipv4(ip) <= ipv4("132.246.217.24")) or (ipv4(ip) >= ipv4("132.246.194.0") and ipv4(ip) <= ipv4("132.246.194.24")):
+				return "CADC"
+			else:
+				return "NRC"		
+		elif ipv4(ip) >= ipv4("206.12.0.0") and ipv4(ip) <= ipv4("206.12.255.255"):
+			return "CC"
+		elif ipv4(ip) >= ipv4("192.168.0.0") and ipv4(ip) <= ipv4("192.168.255.255"):
+			return "CADC"	
+		else:
+			return "Others"	
+	except AddressValueError:
+		print("ip address cannot be handled {0}".format(ip))
+		return "Error"
+
+def timing(func):
+	def wrapper(*args):
+		t_i = time.time()
+		r = func(*args)
+		t_f = time.time() - t_i
+		print("{0} took {1:.3f}s".format(func.__name__, t_f))
+		return r
+	return wrapper	
 
 def fig1(conn):
 	fig = plt.figure(figsize = (60, 40))
@@ -144,7 +174,7 @@ def fig3(conn):
 		}
 	try:
 		res = conn.search(index = "tomcat-svc-*", body = query)
-	except 	TransportError as e:
+	except TransportError as e:
 		print(e.info)
 		raise	
 	#print(res["aggregations"]["avgrate_perwk"]["buckets"])
@@ -168,9 +198,73 @@ def fig3(conn):
 	plt.show()
 	#print(ax.get_xticks())	
 
+@timing
+def fig4(conn):
+	# query = {
+	# 		"query" : {
+	# 	        "bool" : {
+	# 	        	"must" : [
+	# 	            	{ "term" : { "service" : "transfer_ws" } },
+	# 	            	{ "term" : { "phase" : "END" } },
+	# 	            	{ "term" : { "method" : "GET"} }
+	# 	            ]
+	# 	        }	
+	# 	    },
+			# "script":{
+			# "lang": "groovy",
+			# "inline": "if (doc['clientip'] >= 132.246.0.0 && doc['clientip'] <= 132.246.255.255) { if ( (doc['clientip'] >= 132.246.194.0 && doc['clientip'] <= 132.246.194.24) && (doc['clientip'] >= 132.246.195.0 && doc['clientip'] <= 132.246.195.24) && (doc['clientip'] >= 132.246.217.0 && doc['clientip'] <= 132.246.217.24)) { return 'CADC'; } else { return 'NRC'; } } else if ( doc['clientip'] >= 206.12.0.0 && doc['clientip'] <= 206.12.255.255 ){ return 'CC'; } else if (doc['clientip'] >= 192.168.0.0 && doc['clientip'] <= 192.168.255.255 ) { return 'CADC'; } return 'Others';"
+			# },
+	# 		"aggs": {
+	# 	    	"req_by_dom": {
+	# 	    		"terms": {"field": "domain"}
+	# 	    	}
+	# 	    }
+	# 	}
+	query = {
+			"query" : {
+		        "bool" : {
+		        	"must" : [
+		            	{ "term" : { "service" : "transfer_ws" } },
+		            	{ "term" : { "phase" : "END" } },
+		            	{ "term" : { "method" : "GET" } },
+		            	{ "exists": { "field" : "datapath" } },
+		            	{ "regexp": { "datapath.raw" : "/HST/.*" } }
+		            ]
+			    }    
+		    }
+		}
+
+	try:
+		res = conn.search(index = "tomcat-svc-*", body = query)
+		#res = scan(conn, index = "tomcat-svc-*", query = query, scroll = "30m", size = 500)
+	except TransportError as e:
+		print(e.info)
+		raise
+
+	print(res["hits"]["total"])
+	# coll, dom = [], []
+	# for i, hit in enumerate(res):
+	# 	if i % 10000 == 0: print(i);
+	# 	datapath = hit["_source"]["datapath"]
+	# 	ip = hit["_source"]["clientip"]
+	# 	if not re.match("\/VOSpace\/.*", datapath):
+	# 		try:
+	# 			coll.append(re.match("\/([\w-]+)\/.*", datapath).group(1))
+	# 		except AttributeError:
+	# 			print(datapath)
+	# 			raise()
+	# 		dom.append(ip2dom(ip))
+
+	# df = pd.DataFrame(list(zip(coll, dom)), columns = ["collection", "domain"])
+	# print(df)
+
+				
+
+
 if __name__ == "__main__":
 	conn = Conn().conn
-	fig1(conn)
-	fig2(conn)
-	fig3(conn)
-	#conn
+	# fig1(conn)
+	# fig2(conn)
+	# fig3(conn)
+	fig4(conn)
+
