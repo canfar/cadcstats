@@ -195,39 +195,36 @@ ownerDup = {
 with open(log, "r", encoding='utf-8') as fin:
 	# entire output file
 	output = []
+	# each line
+	out = []
+	# used to calc mem usage
+	# -1 is to be handled by logstash
+	residentSetSize = 0
+	diskUsg = 0
+	imgSize = 0
+	stDate, endDate = 0, 0
+	# used for early logs where VMInstanceType is not defined
+	# where the spec of vm is written in three separate fields
+	vmCPUCores, vmMem, vmStorage = 0, 0, 0
+	# for preOS logs it is possible that RequestMemory is not available in Requirements
+	# i.e.:		Requirements = (VMType =?= "nimbus_test" && Arch == "INTEL" && Memory >= 2048 && Cpus >= 1)
+	#			==> RequestMemory = 2048
+	#			-vs-
+	#			Requirements = (Arch == "INTEL") && (OpSys == "LINUX") && (Disk >= DiskUsage) && (((Memory * 1024) >= ImageSize)
+	#			==> RequestMemory unknown
+	# then RequestMemory is assumed to be VMMem
+	findReqMem = False
+	# for preOS we might not be able to find the project name in VMLoc field
+	# then proj name = owner
+	#findProj = False
+	# if it is year 2014. 2014 is different: even tho it is preOS but MemoryUsage is calculated by postOS method
+	yr2014 = False
+	# preOS, Project is traslate through ownerProj dictionary
+	owner = ''
 	# a set to dissolve timestamp conflicts
 	ts = set()
 	content = fin.readlines()
 	for i, line in enumerate(content):
-		# vars:
-		#######
-		# each line
-		out = []
-		# used to calc mem usage
-		# -1 is to be handled by logstash
-		residentSetSize = 0
-		diskUsg = 0
-		imgSize = 0
-		stDate, endDate = 0, 0
-		# used for early logs where VMInstanceType is not defined
-		# where the spec of vm is written in three separate fields
-		vmCPUCores, vmMem, vmStorage = 0, 0, 0
-		# for preOS logs it is possible that RequestMemory is not available in Requirements
-		# i.e.:		Requirements = (VMType =?= "nimbus_test" && Arch == "INTEL" && Memory >= 2048 && Cpus >= 1)
-		#			==> RequestMemory = 2048
-		#			-vs-
-		#			Requirements = (Arch == "INTEL") && (OpSys == "LINUX") && (Disk >= DiskUsage) && (((Memory * 1024) >= ImageSize)
-		#			==> RequestMemory unknown
-		# then RequestMemory is assumed to be VMMem
-		findReqMem = False
-		# for preOS we might not be able to find the project name in VMLoc field
-		# then proj name = owner
-		#findProj = False
-		# if it is year 2014. 2014 is different: even tho it is preOS but MemoryUsage is calculated by postOS method
-		yr2014 = False
-		# preOS, Project is traslate through ownerProj dictionary
-		owner = ''
-		#######
 		t = line.strip().split(" = ", 1)
 		# if the current line is not "*** offset ...."
 		if not re.match("\*\*\*", t[0]) :
@@ -364,12 +361,12 @@ with open(log, "r", encoding='utf-8') as fin:
 			# merge to ES JSON
 			# change if want to merge into other format
 			output.append("{" + ",".join(out) + "}\n")
-			# # reset all the vars
-			# rmRsn, owner = [""] * 2
-			# out = []
-			# #[findReqMem, findProj, yr2014, findRmRsn] = [False] * 4
-			# [findReqMem, yr2014, findRmRsn] = [False] * 3
-			# [residentSetSize, diskUsg, imgSize, vmCPUCores, vmMem, vmStorage, stDate, endDate] = [0] * 8
+			# reset all the vars
+			rmRsn, owner = [""] * 2
+			out = []
+			#[findReqMem, findProj, yr2014, findRmRsn] = [False] * 4
+			[findReqMem, yr2014, findRmRsn] = [False] * 3
+			[residentSetSize, diskUsg, imgSize, vmCPUCores, vmMem, vmStorage, stDate, endDate] = [0] * 8
 
 if jsonOutput:
 	with open(log+".json","w") as fout:
