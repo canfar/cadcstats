@@ -198,214 +198,105 @@ def fig3(conn):
 	plt.show()
 	#print(ax.get_xticks())	
 
-#@timing
 def fig4(conn):
-	# query = {
-	# 		"query" : {
-	# 	        "bool" : {
-	# 	        	"must" : [
-	# 	            	{ "term" : { "service" : "transfer_ws" } },
-	# 	            	{ "term" : { "phase" : "END" } },
-	# 	            	{ "term" : { "method" : "GET"} }
-	# 	            ]
-	# 	        }	
-	# 	    },
-			# "script":{
-			# "lang": "groovy",
-			# "inline": "if (doc['clientip'] >= 132.246.0.0 && doc['clientip'] <= 132.246.255.255) { if ( (doc['clientip'] >= 132.246.194.0 && doc['clientip'] <= 132.246.194.24) && (doc['clientip'] >= 132.246.195.0 && doc['clientip'] <= 132.246.195.24) && (doc['clientip'] >= 132.246.217.0 && doc['clientip'] <= 132.246.217.24)) { return 'CADC'; } else { return 'NRC'; } } else if ( doc['clientip'] >= 206.12.0.0 && doc['clientip'] <= 206.12.255.255 ){ return 'CC'; } else if (doc['clientip'] >= 192.168.0.0 && doc['clientip'] <= 192.168.255.255 ) { return 'CADC'; } return 'Others';"
-			# },
-	# 		"aggs": {
-	# 	    	"req_by_dom": {
-	# 	    		"terms": {"field": "domain"}
-	# 	    	}
-	# 	    }
-	# 	}
-	tmp = []
+	
 	iprange = {("132.246.194.0", "132.246.194.24"):"CADC", ("132.246.195.0", "132.246.195.24"):"CADC", ("132.246.217.0", "132.246.217.24"):"CADC", ("132.246.0.0", "132.246.255.255"):"NRC+CADC", ("192.168.0.0", "192.168.255.255"):"CADC-Private", ("206.12.0.0", "206.12.255.255"):"CC"}
-	for _ in iprange:
-		query = {
-				"query" : {
-			        "bool" : {
-			        	"must" : [
-			            	{ "term" : { "service" : "transfer_ws" } },
-			            	{ "term" : { "phase" : "END" } },
-			            	{ "term" : { "method" : "GET" } },
-			            	{ "term" : { "success" : True } }
-			            	# { "exists": { "field" : "datapath" } }
-			            	# { "regexp": { "datapath.raw" : "/HST/.*" } }
-			            ]
-				    }    
-			    },
-			    "aggs" : {
-			        "ip_ranges" : {
-			            "ip_range" : {
-			                "field" : "clientip",
-			                "ranges" : [
-			                	{ "from" : _[0], "to" : _[1] }
-			                ]
-			            }
-			        },
-			        "start_date" : {
-			        	"min" : { "field" : "@timestamp" }
-			        },
-			        "end_date" : {
-			        	"max" : { "field" : "@timestamp" }
-			        }
-	    		}
-			}
-
-		try:
-			res = conn.search(index = "tomcat-svc-*", body = query)
-			#res = scan(conn, index = "tomcat-svc-*", query = query, scroll = "30m", size = 500)
-		except TransportError as e:
-			print(e.info)
-			raise
-
-		tmp.append({iprange[_]:res["aggregations"]["ip_ranges"]["buckets"][0]["doc_count"]})
-	tot = res["hits"]["total"]
-
-	q2 = {
-		"query" : {
-			"bool" : {
-				"must" : [
-					{ "term" : { "service" : "transfer_ws" } },
-					{ "term" : { "phase" : "END" } },
-					{ "term" : { "method" : "GET" } },
-					{ "term" : { "success" : True } }
-				]
-			}    
-		},
-		"aggs" : {
-			"start_date" : {
-				"min" : { "field" : "@timestamp" }
-			},
-			"end_date" : {
-				"max" : { "field" : "@timestamp" }
-			}
-		}
-	}	
-	res = conn.search(index = "tomcat-svc-*", body = q2)
-	start = res["aggregations"]["start_date"]['value_as_string']
-	end = res["aggregations"]["end_date"]['value_as_string']
-	#print(start, end)
-
-	df = pd.DataFrame.from_dict(tmp).sum().to_frame().T
-	print(df)
-	df["CADC"] = df["CADC"] + df["CADC-Private"]
-	df["NRC"] = df["NRC+CADC"] - df["CADC"]
-	df.at[0, "Others"] = tot - df.at[0,"CADC"] - df.at[0,"NRC"] - df.at[0,"CC"]
-	df = df[["CADC","NRC","CC", "Others"]].T
-	print(df) 
-
+	method = ["GET", "PUT"]
 	fig = plt.figure()
-	ax = fig.add_subplot(111)
-	df.plot(kind = "pie", y = 0, ax = ax, autopct = '%1.1f%%', legend = False, labels = df.index)
-	ax.set_title("Percentage of transfer_ws (method:GET, phase:END, success:true) by Domain, Total Number of GETs: {0:.0f}, From {1:s} to {2:s}".format(tot, re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)))
-	ax.set_ylabel("")
-	ax.axis('equal')
-	plt.show()
-	# coll, dom = [], []
-	# for i, hit in enumerate(res):
-	# 	if i % 10000 == 0: print(i);
-	# 	datapath = hit["_source"]["datapath"]
-	# 	ip = hit["_source"]["clientip"]
-	# 	if not re.match("\/VOSpace\/.*", datapath):
-	# 		try:
-	# 			coll.append(re.match("\/([\w-]+)\/.*", datapath).group(1))
-	# 		except AttributeError:
-	# 			print(datapath)
-	# 			raise()
-	# 		dom.append(ip2dom(ip))
+	i = 0
+	for m in method:
+		events, gbs = [], []
+		for _ in iprange:
+			query = {
+					"query" : {
+				        "bool" : {
+				        	"must" : [
+				            	{ "term" : { "service" : "transfer_ws" } },
+				            	{ "term" : { "phase" : "END" } },
+				            	{ "term" : { "method" : m } },
+				            	{ "term" : { "success" : True } }
+				            ]
+					    }    
+				    },
+				    "aggs" : {
+				        "ip_ranges" : {
+				            "ip_range" : {
+				                "field" : "clientip",
+				                "ranges" : [
+				                	{ "from" : _[0], "to" : _[1] }
+				                ]
+				            },
+				            "aggs" : {
+					            "gigabytes" : {
+					        		"sum" : { "field" : "gbytes" }
+					        	}
+					        }	
+				        },
+				        "tot_giga" : {
+				        	"sum" : { "field" : "gbytes" }
+				        }
+		    		}
+				}
 
-	# df = pd.DataFrame(list(zip(coll, dom)), columns = ["collection", "domain"])
-	# print(df)
+			try:
+				res = conn.search(index = "tomcat-svc-*", body = query)
+				#res = scan(conn, index = "tomcat-svc-*", query = query, scroll = "30m", size = 500)
+			except TransportError as e:
+				print(e.info)
+				raise
 
-def fig5(conn):
-	tmp = []
-	iprange = {("132.246.194.0", "132.246.194.24"):"CADC", ("132.246.195.0", "132.246.195.24"):"CADC", ("132.246.217.0", "132.246.217.24"):"CADC", ("132.246.0.0", "132.246.255.255"):"NRC+CADC", ("192.168.0.0", "192.168.255.255"):"CADC-Private", ("206.12.0.0", "206.12.255.255"):"CC"}
-	for _ in iprange:
-		query = {
-				"query" : {
-			        "bool" : {
-			        	"must" : [
-			            	{ "term" : { "service" : "transfer_ws" } },
-			            	{ "term" : { "phase" : "END" } },
-			            	{ "term" : { "method" : "GET" } },
-			            	{ "term" : { "success" : True } }
-			            	# { "exists": { "field" : "datapath" } }
-			            	# { "regexp": { "datapath.raw" : "/HST/.*" } }
-			            ]
-				    }    
-			    },
-			    "aggs" : {
-			        "ip_ranges" : {
-			            "ip_range" : {
-			                "field" : "clientip",
-			                "ranges" : [
-			                	{ "from" : _[0], "to" : _[1] }
-			                ]
-			            },
-			            "aggs" : {
-				            "gigabytes" : {
-				        		"sum" : { "field" : "gbytes" }
-				        	}
-				        }	
-			        },
-			        "tot_giga" : {
-			        	"sum" : { "field" : "gbytes" }
-			        }
-	    		}
-			}
+			gbs.append({iprange[_]:res["aggregations"]["ip_ranges"]["buckets"][0]["gigabytes"]["value"]})
+			events.append({iprange[_]:res["aggregations"]["ip_ranges"]["buckets"][0]["doc_count"]})
+			
+		tot_gbs = res["aggregations"]["tot_giga"]["value"]
+		tot_events = res["hits"]["total"]
+		#print(tot_gbs, tot_events)
 
-		try:
-			res = conn.search(index = "tomcat-svc-*", body = query)
-			#res = scan(conn, index = "tomcat-svc-*", query = query, scroll = "30m", size = 500)
-		except TransportError as e:
-			print(e.info)
-			raise
-
-		tmp.append({iprange[_]:res["aggregations"]["ip_ranges"]["buckets"][0]["gigabytes"]["value"]})
-		
-	tot = res["aggregations"]["tot_giga"]["value"]
-
-	q2 = {
-		"query" : {
-			"bool" : {
-				"must" : [
-					{ "term" : { "service" : "transfer_ws" } },
-					{ "term" : { "phase" : "END" } },
-					{ "term" : { "method" : "GET" } },
-					{ "term" : { "success" : True } }
-				]
-			}    
-		},
-		"aggs" : {
-			"start_date" : {
-				"min" : { "field" : "@timestamp" }
+		q2 = {
+			"query" : {
+				"bool" : {
+					"must" : [
+						{ "term" : { "service" : "transfer_ws" } },
+						{ "term" : { "phase" : "END" } },
+						{ "term" : { "method" : m } },
+						{ "term" : { "success" : True } }
+					]
+				}    
 			},
-			"end_date" : {
-				"max" : { "field" : "@timestamp" }
+			"aggs" : {
+				"start_date" : {
+					"min" : { "field" : "@timestamp" }
+				},
+				"end_date" : {
+					"max" : { "field" : "@timestamp" }
+				}
 			}
-		}
-	}	
-	res = conn.search(index = "tomcat-svc-*", body = q2)
-	start = res["aggregations"]["start_date"]['value_as_string']
-	end = res["aggregations"]["end_date"]['value_as_string']
+		}	
+		res = conn.search(index = "tomcat-svc-*", body = q2)
+		start = res["aggregations"]["start_date"]['value_as_string']
+		end = res["aggregations"]["end_date"]['value_as_string']
 
-	df = pd.DataFrame.from_dict(tmp).sum().to_frame().T
-	print(df)
-	df["CADC"] = df["CADC"] + df["CADC-Private"]
-	df["NRC"] = df["NRC+CADC"] - df["CADC"]
-	df.at[0, "Others"] = tot - df.at[0,"CADC"] - df.at[0,"NRC"] - df.at[0,"CC"]
-	df = df[["CADC","NRC","CC", "Others"]].T
-	print(df) 
+		df_gbs = pd.DataFrame.from_dict(gbs).sum().to_frame().T
+		df_events = pd.DataFrame.from_dict(events).sum().to_frame().T
+		#print(df_gbs)
+		#print(df_events)
+		df = pd.concat([df_gbs, df_events], ignore_index = True)
+		#print(df)
 
-	fig = plt.figure()
-	ax = fig.add_subplot(111)
-	df.plot(kind = "pie", y = 0, ax = ax, autopct = '%1.1f%%', legend = False, labels = df.index)
-	ax.set_title("Percentage of data of transfer_ws (method:GET, phase:END, success:true) by Domain, Total Downloaded Gigabytes: {0:.0f}, From {1:s} to {2:s}".format(tot, re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)))
-	ax.set_ylabel("")
-	ax.axis('equal')
+		df["CADC"] = df["CADC"] + df["CADC-Private"]
+		df["NRC"] = df["NRC+CADC"] - df["CADC"]
+		df["Others"] = pd.DataFrame([tot_gbs, tot_events])[0] - df["CADC"] - df["NRC"] - df["CC"]
+		df = df[["CADC","NRC","CC", "Others"]].T
+		#print(df) 
+
+		for j in range(2):
+			ax = fig.add_subplot(2, 2, i + 1)
+			df.plot(kind = "pie", y = j, ax = ax, autopct = '%1.1f%%', legend = False, labels = df.index)
+			ax.set_title("{0:s} (Total: {1:.0f} {2:s})\nFrom {3:s} to {4:s}".format((lambda: "Downloads per site" if i < 2 else "Uploads per site")(), (lambda: tot_gbs / 1024 if j == 0 else tot_events / 1e6)(), (lambda: "TB" if j == 0 else "millions files")(), re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)))
+			ax.set_ylabel("")
+			ax.axis('equal')
+			i += 1
+			
 	plt.show()		
 
 
@@ -414,6 +305,5 @@ if __name__ == "__main__":
 	# fig1(conn)
 	# fig2(conn)
 	# fig3(conn)
-	# fig4(conn)
-	fig5(conn)
+	fig4(conn)
 
