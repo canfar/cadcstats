@@ -22,6 +22,6 @@ Tools/scripts used to collect history data from CADC services.
   * ```advancedsearch_mappings.sh```: Elasticsearch mappings.
 
 TODO:
-  * Remove JSON option for all parsers. csv is more friendly (in Elasticsearch).
-  * Clean up ```condor_parser.py``` and ```tomcat_parser.py```.
-  * For ```condor_parser.py```, put all flags, temp var into the for loops (idk why i declared them outside at the beginning...)
+  - [ ] Remove JSON option for all parsers. csv is more friendly (in Elasticsearch).
+  - [ ] Clean up ```condor_parser.py``` and ```tomcat_parser.py```.
+  - [x] For ```condor_parser.py```, put all flags, temp var into the for loops (idk why i declared them outside at the beginning...)
