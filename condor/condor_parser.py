@@ -243,7 +243,7 @@ with open(log, "r", encoding='utf-8') as fin:
 				if t[1] >= 1388534400000 and tmp < 1420070400000:
 					yr2014 = True 
 				t[1] = str(tmp)
-			#elif t[0] == "RemoveReason":
+			# elif t[0] == "RemoveReason":
 			#	t[1] = '"' + t[1] + '"'
 			elif t[0] == "LastRemoteHost":
 				t[0] = "VMInstanceName"
@@ -283,8 +283,8 @@ with open(log, "r", encoding='utf-8') as fin:
 					else:
 						print("Can't find Proj:VMNam at line %i" % i)
 				continue
-			# grab Project from VMLoc, preOS
-			#elif t[0] == "VMLoc" and preOS:
+			# # grab Project from VMLoc, preOS
+			# elif t[0] == "VMLoc" and preOS:
 			#	try:
 			#		t[1] = '"' + re.search("vospace\/([^\/]+)\/", t[1]).group(1) + '"'
 			#		t[0] = "Project"
