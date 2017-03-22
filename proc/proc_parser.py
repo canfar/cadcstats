@@ -74,7 +74,7 @@ with gzip.open(log, "rb") as fin:
 			except KeyError:
 				pass
 			for x in tags:
-				if type(tags[x]) is str:
+				if type(tags[x]) is str or type(tags[x]) is bool:
 					out.append("\"%s\":\"%s\"" % (x, tags[x]))
 				else:
 					#if tags[x] == True or tags[x] == False:
