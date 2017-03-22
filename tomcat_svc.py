@@ -310,8 +310,8 @@ def fig4(conn, idx):
 
 if __name__ == "__main__":
 	conn = Conn().conn
-	# fig1(conn, idx)
-	# fig2(conn, idx)
-	# fig3(conn, idx)
+	# fig1(conn, "tomcat-svc-*")
+	# fig2(conn, "tomcat-svc-*")
+	# fig3(conn, "tomcat-svc-*")
 	fig4(conn, "delivery_history-*")
 
