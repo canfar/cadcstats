@@ -283,8 +283,8 @@ def fig4(conn, idx):
 		df = pd.concat([df_gbs, df_events], ignore_index = True)
 		#print(df)
 
-		df["CADC"] = df["CADC"] + df["CADC-Private"]
 		df["NRC"] = df["NRC+CADC"] - df["CADC"]
+		df["CADC"] = df["CADC"] + df["CADC-Private"]
 		df["Others"] = pd.DataFrame([tot_gbs, tot_events])[0] - df["CADC"] - df["NRC"] - df["CC"]
 		df = df[["CADC","NRC","CC", "Others"]].T
 		#print(df) 
@@ -308,10 +308,110 @@ def fig4(conn, idx):
 	plt.show()		
 
 
+def fig5(conn, idx):
+	iprange = {("132.246.194.0", "132.246.194.24"):"CADC", ("132.246.195.0", "132.246.195.24"):"CADC", ("132.246.217.0", "132.246.217.24"):"CADC", ("132.246.0.0", "132.246.255.255"):"NRC+CADC", ("192.168.0.0", "192.168.255.255"):"CADC-Private", ("206.12.0.0", "206.12.255.255"):"CC"}
+	service = ["data_ws", "vospace_ws"]
+	method = ["GET", "PUT"]
+	fig = plt.figure()
+	i = 0
+	for m in method:
+		for j, s in enumerate(service):
+			events = []
+			for _ in iprange:
+				query = {
+						"query" : {
+					        "bool" : {
+					        	"must" : [
+					            	{ "term" : { "service" : s } },
+					            	{ "term" : { "phase" : "END" } },
+					            	{ "term" : { "method" : m } },
+					            	{ "term" : { "success" : True } }
+					            ]
+						    }    
+					    },
+					    "aggs" : {
+					        "ip_ranges" : {
+					            "ip_range" : {
+					                "field" : "clientip",
+					                "ranges" : [
+					                	{ "from" : _[0], "to" : _[1] }
+					                ]
+					            }	
+					        }
+			    		}
+					}
+
+				try:
+					res = conn.search(index = idx, body = query)
+					#res = scan(conn, index = idx, query = query, scroll = "30m", size = 500)
+				except TransportError as e:
+					print(e.info)
+					raise
+
+				#gbs.append({iprange[_]:res["aggregations"]["ip_ranges"]["buckets"][0]["gigabytes"]["value"]})
+				events.append({iprange[_]:res["aggregations"]["ip_ranges"]["buckets"][0]["doc_count"]})
+				
+			#tot_gbs = res["aggregations"]["tot_giga"]["value"]
+			tot_events = res["hits"]["total"]
+			#print(s,m,tot_events)
+
+			q2 = {
+				"query" : {
+					"bool" : {
+						"must" : [
+							{ "term" : { "service" : "transfer_ws" } },
+							{ "term" : { "phase" : "END" } },
+							{ "term" : { "method" : m } },
+							{ "term" : { "success" : True } }
+						]
+					}    
+				},
+				"aggs" : {
+					"start_date" : {
+						"min" : { "field" : "@timestamp" }
+					},
+					"end_date" : {
+						"max" : { "field" : "@timestamp" }
+					}
+				}
+			}	
+			res = conn.search(index = idx, body = q2)
+			start = res["aggregations"]["start_date"]['value_as_string']
+			end = res["aggregations"]["end_date"]['value_as_string']
+
+			#df_gbs = pd.DataFrame.from_dict(gbs).sum().to_frame().T
+			df_events = pd.DataFrame.from_dict(events).sum().to_frame().T
+			#print(df_gbs)
+			#print(df_events)
+			df = pd.concat([df_events], ignore_index = True)
+			#print(df)
+
+			df["NRC"] = df["NRC+CADC"] - df["CADC"]
+			df["CADC"] = df["CADC"] + df["CADC-Private"]
+			df["Others"] = pd.DataFrame([tot_events])[0] - df["CADC"] - df["NRC"] - df["CC"]
+			df = df[["CADC","NRC","CC", "Others"]].T
+			#print(df) 
+
+			ax = fig.add_subplot(2, 2, i + 1)
+			df.plot(kind = "pie", y = 0, ax = ax, autopct = '%1.1f%%', legend = False, labels = df.index, fontsize = "small")
+			if j == 0:
+				ax.set_ylabel( (lambda: "Downloads" if i == 0 else "Uploads")() )
+			else:
+				ax.set_ylabel("")
+			if i >= 2:
+				ax.text(0, -1.2, (lambda: "data_ws" if j == 0 else "vospace_ws")(), ha = "center", size = "large")
+			ax.set_title("Total Events: {}".format(tot_events))		
+			ax.axis('equal')
+			i += 1
+	plt.suptitle("From {0:s} To {1:s}".format(re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)))
+	plt.tight_layout()	
+	plt.show()	
+
 if __name__ == "__main__":
 	conn = Conn().conn
 	# fig1(conn, "tomcat-svc-*")
 	# fig2(conn, "tomcat-svc-*")
 	# fig3(conn, "tomcat-svc-*")
-	fig4(conn, "delivery_history-*")
+	# fig4(conn, "delivery_history-*")
+	fig5(conn, "delivery_history-*")
 
