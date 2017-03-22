@@ -8,7 +8,7 @@ import numpy as np
 from sqlalchemy import create_engine, text
 import warnings
 
-# $ echo 'cvodb2-01:5432:cvodb:cadcuws:bc5e755f2be8e8' >> ~/.pgpass && chmod 600 .pgpass
+# $ echo 'cvodb2-01:5432:cvodb:cadcuws:bc5e755f2be8e8' >> ~/.pgpass && chmod 600 ~/.pgpass
 # $ echo 'cvodb1:5432:cvodb:cadcuws:bc5e755f2be8e8' >> ~/.pgpass
 engine = create_engine('postgresql://cadcuws@cvodb2-01:5432/cvodb')
 engine_old = create_engine('postgresql://cadcuws@cvodb1:5432/cvodb')
