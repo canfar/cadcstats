@@ -83,7 +83,7 @@ with gzip.open(log, "rb") as fin:
 			output.append("{" + ",".join(out) + "}\n")
 
 if jsonOutput:
-	with open(log+".JSON" ,"w") as fout:
+	with open(log+".json" ,"w") as fout:
 		for line in output:
 			fout.write(line)
 
