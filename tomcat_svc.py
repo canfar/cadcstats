@@ -292,11 +292,18 @@ def fig4(conn):
 		for j in range(2):
 			ax = fig.add_subplot(2, 2, i + 1)
 			df.plot(kind = "pie", y = j, ax = ax, autopct = '%1.1f%%', legend = False, labels = df.index)
-			ax.set_title("{0:s} (Total: {1:.0f} {2:s})\nFrom {3:s} to {4:s}".format((lambda: "Downloads per site" if i < 2 else "Uploads per site")(), (lambda: tot_gbs / 1024 if j == 0 else tot_events / 1e6)(), (lambda: "TB" if j == 0 else "millions files")(), re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)))
-			ax.set_ylabel("")
+			ax.set_title("Total: {0:.0f} {1:s}".format( (lambda: tot_gbs / 1024 if j == 0 else tot_events / 1e6)(), (lambda: "TB" if j == 0 else "millions files")() ))
+			if j == 0:
+				ax.set_ylabel((lambda: "Download" if i == 0 else "Uploads")())
+				if i < 2:
+					ax.text(0.5, 1.5, "col title left", size = "xx-large")
+			else:
+				ax.set_ylabel("")
+				if i < 2:
+					ax.text(0.5, 1.5, "col title right", size = "xx-large")	
 			ax.axis('equal')
 			i += 1
-			
+		
 	plt.show()		
 
 
