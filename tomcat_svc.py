@@ -47,7 +47,7 @@ def timing(func):
 		return r
 	return wrapper	
 
-def fig1(conn):
+def fig1(conn, idx):
 	fig = plt.figure(figsize = (60, 40))
 	method = ["PUT","GET"]
 	service = ["transfer_ws", "data_ws", "vospace_ws"]
@@ -72,7 +72,7 @@ def fig1(conn):
 				    }
 				}
 			try:
-				res = conn.search(index = "tomcat-svc-*", body = query)
+				res = conn.search(index = idx, body = query)
 			except 	TransportError as e:
 				print(e.info)
 				raise
@@ -88,7 +88,7 @@ def fig1(conn):
 			p += 1
 	plt.show()
 
-def fig2(conn):
+def fig2(conn, idx):
 	fig = plt.figure(figsize = (30, 10))
 	service = ["transfer_ws", "data_ws", "vospace_ws"]
 	method = ["GET", "PUT"]
@@ -125,7 +125,7 @@ def fig2(conn):
 					}
 				}
 			try:
-				res = conn.search(index = "tomcat-svc-*", body = query)
+				res = conn.search(index = idx, body = query)
 			except 	TransportError as e:
 				print(e.info)
 				raise	
@@ -141,7 +141,7 @@ def fig2(conn):
 		ax.set_xticks([_ - 1 for _ in ax.get_xticks()])	
 	plt.show()
 
-def fig3(conn):
+def fig3(conn, idx):
 	fig = plt.figure(figsize = (10, 5))
 	ax = fig.add_subplot(111)
 	query = {
@@ -173,7 +173,7 @@ def fig3(conn):
 			}
 		}
 	try:
-		res = conn.search(index = "tomcat-svc-*", body = query)
+		res = conn.search(index = idx, body = query)
 	except TransportError as e:
 		print(e.info)
 		raise	
@@ -198,7 +198,7 @@ def fig3(conn):
 	plt.show()
 	#print(ax.get_xticks())	
 
-def fig4(conn):
+def fig4(conn, idx):
 	
 	iprange = {("132.246.194.0", "132.246.194.24"):"CADC", ("132.246.195.0", "132.246.195.24"):"CADC", ("132.246.217.0", "132.246.217.24"):"CADC", ("132.246.0.0", "132.246.255.255"):"NRC+CADC", ("192.168.0.0", "192.168.255.255"):"CADC-Private", ("206.12.0.0", "206.12.255.255"):"CC"}
 	method = ["GET", "PUT"]
@@ -239,8 +239,8 @@ def fig4(conn):
 				}
 
 			try:
-				res = conn.search(index = "tomcat-svc-*", body = query)
-				#res = scan(conn, index = "tomcat-svc-*", query = query, scroll = "30m", size = 500)
+				res = conn.search(index = idx, body = query)
+				#res = scan(conn, index = idx, query = query, scroll = "30m", size = 500)
 			except TransportError as e:
 				print(e.info)
 				raise
@@ -272,7 +272,7 @@ def fig4(conn):
 				}
 			}
 		}	
-		res = conn.search(index = "tomcat-svc-*", body = q2)
+		res = conn.search(index = idx, body = q2)
 		start = res["aggregations"]["start_date"]['value_as_string']
 		end = res["aggregations"]["end_date"]['value_as_string']
 
@@ -292,25 +292,26 @@ def fig4(conn):
 		for j in range(2):
 			ax = fig.add_subplot(2, 2, i + 1)
 			df.plot(kind = "pie", y = j, ax = ax, autopct = '%1.1f%%', legend = False, labels = df.index)
-			ax.set_title("Total: {0:.0f} {1:s}".format( (lambda: tot_gbs / 1024 if j == 0 else tot_events / 1e6)(), (lambda: "TB" if j == 0 else "millions files")() ))
+			ax.set_title("Total: {0:.0f} {1:s}".format( (lambda: tot_gbs / 1024 if j == 0 else tot_events / 1e6)(), (lambda: "TB" if j == 0 else "million files")() ))
+			# if i < 2:
+			# 	ax.text(0, 1.5, "Data Transfer From {0:s} To {1:s}".format(re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)), size = "large", ha = "center")	
+			# else:
+			if i >= 2:
+				ax.text(0, -1.5, "In {0:s}".format((lambda: "Size" if j == 0 else "Number of Files")()), size = "large", horizontalalignment = "center")	
 			if j == 0:
-				ax.set_ylabel((lambda: "Download" if i == 0 else "Uploads")())
-				if i < 2:
-					ax.text(0.5, 1.5, "col title left", size = "xx-large")
+				ax.set_ylabel((lambda: "Downloads" if i == 0 else "Uploads")(), size = "large")	
 			else:
-				ax.set_ylabel("")
-				if i < 2:
-					ax.text(0.5, 1.5, "col title right", size = "xx-large")	
+				ax.set_ylabel("")	
 			ax.axis('equal')
 			i += 1
-		
+	plt.suptitle("Data Transfer From {0:s} To {1:s}".format(re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)))	
 	plt.show()		
 
 
 if __name__ == "__main__":
 	conn = Conn().conn
-	# fig1(conn)
-	# fig2(conn)
-	# fig3(conn)
-	fig4(conn)
+	# fig1(conn, idx)
+	# fig2(conn, idx)
+	# fig3(conn, idx)
+	fig4(conn, "delivery_history-*")
 
