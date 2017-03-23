@@ -47,6 +47,7 @@ with gzip.open(log, "rb") as fin:
 			out.append("\"timestamp\":%i" % t)
 			# append service type
 			out.append("\"service\":\"%s\"" % re.search("\d{3}\ (\w+)\ \[", line).group(1))
+			out.append("\"servlet\":\"%s\"" % re.search("\] INFO  (\w+)  - END: \{", line).group(1))
 			while not re.search("(\{.*\})", line):
 				nextline = content[i + j].decode("utf-8").replace("\x00", "")
 				line += nextline.strip("\n")
