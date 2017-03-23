@@ -414,4 +414,3 @@ if __name__ == "__main__":
 	# fig3(conn, "tomcat-svc-*")
 	# fig4(conn, "delivery_history-*")
 	fig5(conn, "delivery_history-*")
-
