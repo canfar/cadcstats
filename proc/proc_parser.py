@@ -46,8 +46,14 @@ with gzip.open(log, "rb") as fin:
 			t = tmp
 			out.append("\"timestamp\":%i" % t)
 			# append service type
-			out.append("\"service\":\"%s\"" % re.search("\d{3}\ (\w+)\ \[", line).group(1))
-			out.append("\"servlet\":\"%s\"" % re.search("\] INFO  (\w+)  - END: \{", line).group(1))
+			try:
+				out.append("\"service\":\"%s\"" % re.search("\d{3}\ (\w+)\ \[", line).group(1))
+			except AttributeError:
+				out.append("\"service\":\"\"")
+			try:		
+				out.append("\"servlet\":\"%s\"" % re.search("\] INFO  (\w+)  - END: \{", line).group(1))
+			except AttributeError:
+				out.append("\"servlet\":\"\"")	
 			while not re.search("(\{.*\})", line):
 				nextline = content[i + j].decode("utf-8").replace("\x00", "")
 				line += nextline.strip("\n")
@@ -90,7 +96,7 @@ if jsonOutput:
 
 if csvOutput:
 	with open(log+".csv","w") as fout:
-		colName = ["timestamp", "service", "servlet", "user", "success", "method", "from", "message", "path", "time"]
+		colName = ["timestamp", "service", "servlet", "user", "success", "method", "from", "message", "path", "time", "jobID"]
 		w = csv.DictWriter(fout, fieldnames = colName)
 		w.writeheader()
 		for line in output:
