@@ -70,10 +70,10 @@ with gzip.open(log, "rb") as fin:
 				tar = "\"message\":\"%s\"}" % msg.replace("\"", "\'")
 				tmp = re.sub("\"message\"\:\"(.*)\"\}$", tar, tmp)
 			tags = eval(tmp)
-			try:
-				tags.pop("path")
-			except KeyError:
-				pass
+			#try:
+			#	tags.pop("path")
+			#except KeyError:
+			#	pass
 			for x in tags:
 				if type(tags[x]) is str or type(tags[x]) is bool:
 					out.append("\"%s\":\"%s\"" % (x, tags[x]))
@@ -90,7 +90,7 @@ if jsonOutput:
 
 if csvOutput:
 	with open(log+".csv","w") as fout:
-		colName = ["timestamp", "service", "user", "success", "method", "from", "message", "time"]
+		colName = ["timestamp", "service", "servlet", "user", "success", "method", "from", "message", "path", "time"]
 		w = csv.DictWriter(fout, fieldnames = colName)
 		w.writeheader()
 		for line in output:
