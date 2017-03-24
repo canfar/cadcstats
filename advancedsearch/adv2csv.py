@@ -16,7 +16,7 @@ engine_old = create_engine('postgresql://cadcuws@cvodb1:5432/cvodb')
 
 # In[2]:
 
-query_test = "SELECT job.jobid, job.runid, job.ownerid, job.executionphase as phase, job.executionduration as duration, job.starttime, job.remoteip, jd.value as query FROM uws.Job job INNER JOIN uws.JobDetail jd ON job.jobid = jd.jobid WHERE (jd.value LIKE 'SELECT Observation.observationURI AS \"Preview\"%') "
+query_test = "SELECT job.jobid, job.runid, job.ownerid, job.executionphase as phase, job.executionduration as duration, job.starttime, job.remoteip, jd.value as query FROM uws.Job job INNER JOIN uws.JobDetail jd ON job.jobid = jd.jobid WHERE (jd.value LIKE '%Observation.observationURI AS \"Preview\"%') "
 df_test_new = pd.read_sql_query(text(query_test), con = engine)
 df_test_old = pd.read_sql_query(text(query_test), con = engine_old)
 df_test = pd.concat([df_test_old,df_test_new])
