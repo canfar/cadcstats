@@ -51,7 +51,7 @@ with gzip.open(log, "rb") as fin:
 			except AttributeError:
 				out.append("\"service\":\"NoService\"")
 			try:		
-				out.append("\"servlet\":\"%s\"" % re.search("\] INFO  (\w+)  - END: \{", line).group(1))
+				out.append("\"servlet\":\"%s\"" % re.search("\] INFO  (\w+)  -", line).group(1))
 			except AttributeError:
 				out.append("\"servlet\":\"NoServlet\"")	
 			while not re.search("(\{.*\})", line):
