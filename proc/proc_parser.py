@@ -49,11 +49,11 @@ with gzip.open(log, "rb") as fin:
 			try:
 				out.append("\"service\":\"%s\"" % re.search("\d{3}\ (\w+)\ \[", line).group(1))
 			except AttributeError:
-				out.append("\"service\":\"\"")
+				out.append("\"service\":\"NoService\"")
 			try:		
 				out.append("\"servlet\":\"%s\"" % re.search("\] INFO  (\w+)  - END: \{", line).group(1))
 			except AttributeError:
-				out.append("\"servlet\":\"\"")	
+				out.append("\"servlet\":\"NoServlet\"")	
 			while not re.search("(\{.*\})", line):
 				nextline = content[i + j].decode("utf-8").replace("\x00", "")
 				line += nextline.strip("\n")
