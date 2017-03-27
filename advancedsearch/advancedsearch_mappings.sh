@@ -1,4 +1,4 @@
-curl -XPUT http://localhost:9200/logs-advancedsearch -d '
+curl -XPUT http://192.168.59.224:9200/logs-advancedsearch -d '
 {
 "template": "advancedsearch-logs",
   "settings": {
