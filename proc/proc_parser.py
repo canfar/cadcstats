@@ -3,6 +3,7 @@ import csv
 import sys
 import gzip
 import time
+from datetime import datetime
 
 csvOutput = True if "-csv" in sys.argv else False
 jsonOutput = True if "-json" in sys.argv else False
@@ -34,9 +35,22 @@ with gzip.open(log, "rb") as fin:
 		j = 1
 		out = []
 		line = line.decode("utf-8").replace("\x00", "").strip("\n")
-		if re.search("-\ END", line):
-			# append timestamp
-			t = int(time.mktime(time.strptime(re.match("(\d{4}\-\d{2}-\d{2}\ \d{2}\:\d{2}\:\d{2})", line).group(0), "%Y-%m-%d %H:%M:%S"))) * 1000
+		##
+		# from John's config
+		#
+		if re.search("RemoteEventLogger", line) or re.search("LogEventsServlet", line):
+			continue
+		##
+		# group(1): time
+		# group(2): optional microsec
+		# group(3): service
+		# group(4): servlet
+		# group(5): message after '-'
+		#
+		r = re.search("(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{3})?) ([\w ]*) \[[\w-]+\] INFO  (\w*)  - (.+)", line)
+		if r:
+			d = datetime.strptime(r.group(1), "%Y-%m-%d %H:%M:%S.%f")
+			t = int(time.mktime(d.timetuple())) * 1000 + d.microsecond / 1000
 			k = 1
 			tmp = t
 			while tmp in ts:
@@ -45,59 +59,58 @@ with gzip.open(log, "rb") as fin:
 			ts.add(tmp)
 			t = tmp
 			out.append("\"timestamp\":%i" % t)
-			# append service type
-			try:
-				out.append("\"service\":\"%s\"" % re.search("\d{3}\ (\w+)\ \[", line).group(1))
-			except AttributeError:
-				out.append("\"service\":\"NoService\"")
-			try:		
-				out.append("\"servlet\":\"%s\"" % re.search("\] INFO  (\w+)  -", line).group(1))
-			except AttributeError:
-				out.append("\"servlet\":\"NoServlet\"")	
-			while not re.search("(\{.*\})", line):
-				nextline = content[i + j].decode("utf-8").replace("\x00", "")
-				line += nextline.strip("\n")
-				j += 1		
-			tmp = re.search("(\{.*\})", line).group(1)
-			if re.search("true", tmp):
+			out.append("\"service\":\"%s\"" % r.group(3))
+			out.append("\"servlet\":\"%s\"" % r.group(4))
+			message = r.group(5)
+			if re.search("^END:", message):
+				while not re.search("(\{.*\})", message):
+					nextmessage = content[i + j].decode("utf-8").replace("\x00", "")
+					message += nextmessage.strip("\n")
+					j += 1		
+				tmp = re.search("(\{.*\})", message).group(1)
 				tmp = tmp.replace("true", "True")
-			if re.search("false", tmp):
 				tmp = tmp.replace("false", "False")
-			r = re.search("\"message\"\:\"(.*)\"\}$", tmp)
-			if r:
-				#msg = ""
-				# if there is more than 10 '.' together, we remove them
-				t = re.search("\.{10,}", r.group(1))
-				if t:
-					print("** find lots of '.' in %s" % log)
-					msg = re.sub("\.{10,}", " ", r.group(1))
-				else:
-					msg = r.group(1)	
-				tar = "\"message\":\"%s\"}" % msg.replace("\"", "\'")
-				tmp = re.sub("\"message\"\:\"(.*)\"\}$", tar, tmp)
-			tags = eval(tmp)
-			#try:
-			#	tags.pop("path")
-			#except KeyError:
-			#	pass
-			for x in tags:
-				if type(tags[x]) is str or type(tags[x]) is bool:
+				r = re.search("\"message\"\:\"(.*?)\"[,}]", tmp)
+				if r:
+					##
+					# if there is more than 10 '.' together, we remove them
+					#
+					t = re.search("\.{10,}", r.group(1))
+					if t:
+						print("** find lots of '.' in %s" % log)
+						msg = re.sub("\.{10,}", " ", r.group(1))
+					else:
+						msg = r.group(1)	
+					tar = "\"message\":\"%s\"" % msg.replace("\"", "\'") + r.group(0)[-1]
+					tmp = re.sub("\"message\":\"(.*?)\"[,}]", tar, tmp)
+				r = re.search("\"path\":\"(.*?)\"[,}]", tmp)
+				if r:
+					path = r.group(1).replace("\"", "\'")
+					tar = "\"path\":\"%s\"" % path + r.group(0)[-1]
+					tmp = re.sub("\"path\":\"(.*?)\"[,}]", tar, tmp)
+				tags = eval(tmp)
+				for x in tags:
 					out.append("\"%s\":\"%s\"" % (x, tags[x]))
-				else:
-					#if tags[x] == True or tags[x] == False:
-					#	tags[x] = str(tags[x]).lower()
-					out.append("\"%s\":%s" % (x, str(tags[x])))
+			else:
+				##
+				# ignore phase:START, since the info is duplicated in phase:END
+				#
+				if re.search("^START:", message):
+					continue
+				out.append("\"message\":\'%s\'" % message)
 			output.append("{" + ",".join(out) + "}\n")
+				
 
 if jsonOutput:
-	with open(log+".json" ,"w") as fout:
+	with gzip.open(log+".json.gz" ,"wt") as fout:
 		for line in output:
 			fout.write(line)
 
 if csvOutput:
+	#with gzip.open(log+".csv.gz","wt") as fout:
 	with open(log+".csv","w") as fout:
-		colName = ["timestamp", "service", "servlet", "user", "success", "method", "from", "message", "path", "time", "jobID"]
-		w = csv.DictWriter(fout, fieldnames = colName)
-		w.writeheader()
+		colName = ["timestamp", "service", "servlet", "user", "success", "method", "from", "message", "path", "time", "jobID", "bytes"]
+		w = csv.DictWriter(fout, fieldnames = colName, delimiter = '|')
+		#w.writeheader()
 		for line in output:
 			w.writerow(eval(line))
