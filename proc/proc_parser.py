@@ -67,9 +67,9 @@ with gzip.open(log, "rb") as fin:
 			out.append("\"servlet\":\"%s\"" % r.group(4))
 			message = r.group(5)
 			if re.search("^END:", message):
-				if re.search("^END:\w+{", message):
+				if re.search("^END:\ +{", message):
 					while not re.search("(\{.*\})", message):
-						next_line = fin.next().decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "")
+						next_line = next(fin).decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "")
 						message += next_line.strip("\n")
 						#j += 1		
 				tmp = re.search("(\{.*\})", message).group(1)
