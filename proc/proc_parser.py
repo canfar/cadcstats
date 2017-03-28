@@ -38,7 +38,7 @@ with gzip.open(log, "rb") as fin:
 		#print(line)
 		#j = 1
 		out = []
-		line = line.decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "")
+		line = line.decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "").replace("^M", "")
 		##
 		# from John's config
 		#
@@ -71,7 +71,7 @@ with gzip.open(log, "rb") as fin:
 			if re.search("^END:", message):
 				if re.search("^END:\ +{", message):
 					while not re.search("(\{.*\})", message):
-						next_line = next(fin).decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "")
+						next_line = next(fin).decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "").replace("^M", "")
 						message += next_line.strip("\n")
 						#j += 1		
 				tmp = re.search("(\{.*\})", message).group(1)
@@ -100,7 +100,11 @@ with gzip.open(log, "rb") as fin:
 				# i.e., "addedMembers":[ac_ws-inttest-testGroup-1416945206192]
 				#
 				tmp = re.sub("\"(add|delet)edMembers\":\[.*?\],?", "", tmp)
-				tags = eval(tmp)
+				try:
+					tags = eval(tmp)
+				except SyntaxError:
+					print(des, "Syntax Error:", tmp)
+					continue
 				for x in tags:
 					## 
 					# ignore groupID, fromVOS
