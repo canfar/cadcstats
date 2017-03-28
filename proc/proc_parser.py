@@ -36,7 +36,7 @@ ts = set()
 with gzip.open(log, "rb") as fin:
 	for i, line in enumerate(fin):
 		#print(line)
-		j = 1
+		#j = 1
 		out = []
 		line = line.decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "")
 		##
@@ -67,10 +67,11 @@ with gzip.open(log, "rb") as fin:
 			out.append("\"servlet\":\"%s\"" % r.group(4))
 			message = r.group(5)
 			if re.search("^END:", message):
-				while not re.search("(\{.*\})", message):
-					next_line = fin.next().decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "")
-					message += next_line.strip("\n")
-					j += 1		
+				if re.search("^END:\w+{", message):
+					while not re.search("(\{.*\})", message):
+						next_line = fin.next().decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "")
+						message += next_line.strip("\n")
+						#j += 1		
 				tmp = re.search("(\{.*\})", message).group(1)
 				tmp = tmp.replace("true", "True")
 				tmp = tmp.replace("false", "False")
