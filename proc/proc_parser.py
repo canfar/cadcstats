@@ -4,6 +4,7 @@ import sys
 import gzip
 import time
 from datetime import datetime
+import os
 
 csvOutput = True if "-csv" in sys.argv else False
 jsonOutput = True if "-json" in sys.argv else False
@@ -34,7 +35,7 @@ with gzip.open(log, "rb") as fin:
 	for i, line in enumerate(content):
 		j = 1
 		out = []
-		line = line.decode("utf-8").replace("\x00", "").strip("\n")
+		line = line.decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "")
 		##
 		# from John's config
 		#
@@ -64,7 +65,7 @@ with gzip.open(log, "rb") as fin:
 			message = r.group(5)
 			if re.search("^END:", message):
 				while not re.search("(\{.*\})", message):
-					nextmessage = content[i + j].decode("utf-8").replace("\x00", "")
+					nextmessage = content[i + j].decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "")
 					message += nextmessage.strip("\n")
 					j += 1		
 				tmp = re.search("(\{.*\})", message).group(1)
@@ -100,15 +101,16 @@ with gzip.open(log, "rb") as fin:
 				out.append("\"message\":\'%s\'" % message)
 			output.append("{" + ",".join(out) + "}\n")
 				
+des = os.path.basename(log)
 
 if jsonOutput:
-	with gzip.open(log+".json.gz" ,"wt") as fout:
+	with gzip.open(des+".json.gz" ,"wt") as fout:
 		for line in output:
 			fout.write(line)
 
 if csvOutput:
 	#with gzip.open(log+".csv.gz","wt") as fout:
-	with open(log+".csv","w") as fout:
+	with open(des+".csv","w") as fout:
 		colName = ["timestamp", "service", "servlet", "user", "success", "method", "from", "message", "path", "time", "jobID", "bytes"]
 		w = csv.DictWriter(fout, fieldnames = colName, delimiter = '|')
 		#w.writeheader()
