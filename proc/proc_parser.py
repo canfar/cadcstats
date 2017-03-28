@@ -51,7 +51,7 @@ with gzip.open(log, "rb") as fin:
 		# group(4): servlet
 		# group(5): message after '-'
 		#
-		r = re.search("(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{3})?) ([\w ]*) \[[\w-]+\] INFO  (\w*)  - (.+)", line)
+		r = re.search("(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{3})?) ([\w ]*) \[.+?\] INFO  (\w*)  - (.+)", line)
 		if r:
 			d = datetime.strptime(r.group(1), "%Y-%m-%d %H:%M:%S.%f")
 			t = int(time.mktime(d.timetuple())) * 1000 + d.microsecond / 1000
@@ -75,7 +75,7 @@ with gzip.open(log, "rb") as fin:
 				tmp = re.search("(\{.*\})", message).group(1)
 				tmp = tmp.replace("true", "True")
 				tmp = tmp.replace("false", "False")
-				r = re.search("\"message\"\:\"(.*?)\"[,}]", tmp)
+				r = re.search("\"message\"\:\"(.*?)(\",|\"}$)", tmp)
 				if r:
 					##
 					# if there is more than 10 '.' together, we remove them
@@ -87,37 +87,39 @@ with gzip.open(log, "rb") as fin:
 					else:
 						msg = r.group(1)	
 					tar = "\"message\":\"%s\"" % msg.replace("\"", "\'") + r.group(0)[-1]
-					tmp = re.sub("\"message\":\"(.*?)\"[,}]", tar, tmp)
-				r = re.search("\"path\":\"(.*?)\"[,}]", tmp)
+					tmp = re.sub("\"message\":\"(.*?)(\",|\"}$)", tar, tmp)
+				r = re.search("\"path\":\"(.*?)(\",|\"}$)", tmp)
 				if r:
 					path = r.group(1).replace("\"", "\'")
 					tar = "\"path\":\"%s\"" % path + r.group(0)[-1]
-					tmp = re.sub("\"path\":\"(.*?)\"[,}]", tar, tmp)
+					tmp = re.sub("\"path\":\"(.*?)(\",|\"}$)", tar, tmp)
 				##
-				# ignore addMembers
+				# ignore addMembers, as the json is invalid
+				# i.e., "addedMembers":[ac_ws-inttest-testGroup-1416945206192]
 				#
 				tmp = re.sub("\"(add|delet)edMembers\":\[.*?\],?", "", tmp)
 				tags = eval(tmp)
 				for x in tags:
 					## 
-					# ignore groupID
+					# ignore groupID, fromVOS
 					#
-					if x != "groupID":
-						out.append("\"%s\":\"%s\"" % (x, tags[x]))
+					#if x != "groupID" and x != "fromVOS":
+					#	out.append("\"%s\":\"%s\"" % (x, tags[x]))
+					out.append("\"%s\":\"%s\"" % (x, tags[x]))
 			else:
 				##
 				# ignore phase:START, since the info is duplicated in phase:END
 				#
 				if re.search("^START:", message):
 					continue
-				out.append("\"message\":\'%s\'" % message)
+				out.append("\"message\":\"%s\"" % message)
 			if csvOutput:
 				#with gzip.open(log+".csv.gz","wt") as fout:
 				with open(des+".csv","a") as fout:
 					w = csv.DictWriter(fout, fieldnames = colName, delimiter = '|')
 					w.writerow(eval("{" + ",".join(out) + "}\n"))
 			if jsonOutput:
-				with open(des+".json.gz" ,"a") as fout:
+				with open(des+".json" ,"a") as fout:
 					fout.write("{" + ",".join(out) + "}\n")
 				
 # des = os.path.basename(log)
