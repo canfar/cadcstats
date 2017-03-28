@@ -6,6 +6,8 @@ import time
 from datetime import datetime
 import os
 
+colName = ["timestamp", "service", "servlet", "user", "success", "method", "from", "message", "path", "time", "jobID", "bytes", "target"]
+
 csvOutput = True if "-csv" in sys.argv else False
 jsonOutput = True if "-json" in sys.argv else False
 
@@ -28,11 +30,12 @@ except IndexError:
     print("no file specified by -f ...")
     sys.exit(0)
 
-output = []
+des = os.path.basename(log)
+#output = []
 ts = set()
 with gzip.open(log, "rb") as fin:
-	content = fin.readlines()
-	for i, line in enumerate(content):
+	for i, line in enumerate(fin):
+		#print(line)
 		j = 1
 		out = []
 		line = line.decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "")
@@ -65,8 +68,8 @@ with gzip.open(log, "rb") as fin:
 			message = r.group(5)
 			if re.search("^END:", message):
 				while not re.search("(\{.*\})", message):
-					nextmessage = content[i + j].decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "")
-					message += nextmessage.strip("\n")
+					next_line = fin.next().decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "")
+					message += next_line.strip("\n")
 					j += 1		
 				tmp = re.search("(\{.*\})", message).group(1)
 				tmp = tmp.replace("true", "True")
@@ -107,20 +110,27 @@ with gzip.open(log, "rb") as fin:
 				if re.search("^START:", message):
 					continue
 				out.append("\"message\":\'%s\'" % message)
-			output.append("{" + ",".join(out) + "}\n")
+			if csvOutput:
+				#with gzip.open(log+".csv.gz","wt") as fout:
+				with open(des+".csv","a") as fout:
+					w = csv.DictWriter(fout, fieldnames = colName, delimiter = '|')
+					w.writerow(eval("{" + ",".join(out) + "}\n"))
+			if jsonOutput:
+				with open(des+".json.gz" ,"a") as fout:
+					fout.write("{" + ",".join(out) + "}\n")
 				
-des = os.path.basename(log)
+# des = os.path.basename(log)
 
-if jsonOutput:
-	with gzip.open(des+".json.gz" ,"wt") as fout:
-		for line in output:
-			fout.write(line)
+# if jsonOutput:
+# 	with gzip.open(des+".json.gz" ,"wt") as fout:
+# 		for line in output:
+# 			fout.write(line)
 
-if csvOutput:
-	#with gzip.open(log+".csv.gz","wt") as fout:
-	with open(des+".csv","w") as fout:
-		colName = ["timestamp", "service", "servlet", "user", "success", "method", "from", "message", "path", "time", "jobID", "bytes", "target"]
-		w = csv.DictWriter(fout, fieldnames = colName, delimiter = '|')
-		#w.writeheader()
-		for line in output:
-			w.writerow(eval(line))
+# if csvOutput:
+# 	#with gzip.open(log+".csv.gz","wt") as fout:
+# 	with open(des+".csv","w") as fout:
+# 		colName = ["timestamp", "service", "servlet", "user", "success", "method", "from", "message", "path", "time", "jobID", "bytes", "target"]
+# 		w = csv.DictWriter(fout, fieldnames = colName, delimiter = '|')
+# 		#w.writeheader()
+# 		for line in output:
+# 			w.writerow(eval(line))
