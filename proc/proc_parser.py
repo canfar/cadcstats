@@ -63,6 +63,8 @@ with gzip.open(log, "rb") as fin:
 			ts.add(tmp)
 			t = tmp
 			out.append("\"timestamp\":%i" % t)
+			if r.group(3) == "meetingsvc":
+				continue
 			out.append("\"service\":\"%s\"" % r.group(3))
 			out.append("\"servlet\":\"%s\"" % r.group(4))
 			message = r.group(5)
@@ -112,7 +114,7 @@ with gzip.open(log, "rb") as fin:
 				#
 				if re.search("^START:", message):
 					continue
-				out.append("\"message\":\"%s\"" % message)
+				out.append("\"message\":\"%s\"" % message.replace("\"","\'"))
 			if csvOutput:
 				#with gzip.open(log+".csv.gz","wt") as fout:
 				with open(des+".csv","a") as fout:
