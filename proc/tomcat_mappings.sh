@@ -71,6 +71,11 @@ curl -XPUT http://192.168.59.224:9200/logs-tomcat -d '
 		  "type": "text",
           "fielddata": true,
           "analyzer": "lowercase_whitespace"
+        },
+		"target": {
+          "type": "text",
+          "fielddata": true,
+          "analyzer": "lowercase_whitespace"
         }
       }
     }

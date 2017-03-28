@@ -89,9 +89,17 @@ with gzip.open(log, "rb") as fin:
 					path = r.group(1).replace("\"", "\'")
 					tar = "\"path\":\"%s\"" % path + r.group(0)[-1]
 					tmp = re.sub("\"path\":\"(.*?)\"[,}]", tar, tmp)
+				##
+				# ignore addMembers
+				#
+				tmp = re.sub("\"(add|delet)edMembers\":\[.*?\],?", "", tmp)
 				tags = eval(tmp)
 				for x in tags:
-					out.append("\"%s\":\"%s\"" % (x, tags[x]))
+					## 
+					# ignore groupID
+					#
+					if x != "groupID":
+						out.append("\"%s\":\"%s\"" % (x, tags[x]))
 			else:
 				##
 				# ignore phase:START, since the info is duplicated in phase:END
@@ -111,7 +119,7 @@ if jsonOutput:
 if csvOutput:
 	#with gzip.open(log+".csv.gz","wt") as fout:
 	with open(des+".csv","w") as fout:
-		colName = ["timestamp", "service", "servlet", "user", "success", "method", "from", "message", "path", "time", "jobID", "bytes"]
+		colName = ["timestamp", "service", "servlet", "user", "success", "method", "from", "message", "path", "time", "jobID", "bytes", "target"]
 		w = csv.DictWriter(fout, fieldnames = colName, delimiter = '|')
 		#w.writeheader()
 		for line in output:
