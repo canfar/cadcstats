@@ -103,7 +103,7 @@ with gzip.open(log, "rb") as fin:
 				try:
 					tags = eval(tmp)
 				except SyntaxError:
-					print(des, "Syntax Error:", tmp)
+					print(des, i, "Syntax Error:", tmp)
 					continue
 				for x in tags:
 					## 
