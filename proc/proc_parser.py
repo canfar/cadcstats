@@ -12,8 +12,18 @@ csvOutput = True if "-csv" in sys.argv else False
 jsonOutput = True if "-json" in sys.argv else False
 
 if not (csvOutput or jsonOutput):
-    print("at least specify one type of output, -csv or -json ...")
-    sys.exit(0)
+	print("at least specify one type of output, -csv or -json ...")
+	sys.exit(0)
+
+line_mode = False
+line_mode_write = False
+if "-line" in sys.argv:
+	line_mode = True
+	try:
+		line_num = int(sys.argv[sys.argv.index("-line") + 1])
+	except IndexError:
+	    print("no line # specified by -line ...")
+	    sys.exit(0)	
 
 try:
     log = sys.argv[sys.argv.index("-f") + 1]
@@ -39,8 +49,12 @@ ts = set()
 
 with gzip.open(log, "rb") as fin:
 	for i, line in enumerate(fin):
+		if line_mode_write:
+			break
+		if line_mode and i != line_num:
+			continue
 		out = []
-		line = regex.sub(b"", line).decode("utf-8").strip().replace("\\r", "")
+		line = regex.sub(b"", line).decode("utf-8").strip().replace("\\r", "").replace("\\n", "").replace("\\u0000", "")
 		##
 		# from John's config
 		#
@@ -73,7 +87,7 @@ with gzip.open(log, "rb") as fin:
 			if re.search("^END:", message):
 				if re.search("^END:\ +{", message):
 					while not re.search("\{.*\}$", message):
-						message += regex.sub(b"", next(fin)).decode("utf-8").strip("\r").replace("\\r", "")	
+						message += regex.sub(b"", next(fin)).decode("utf-8").strip("\r").replace("\\r", "").replace("\\n", "").replace("\\u0000", "")	
 				tmp = re.search("(\{.*\})", message).group(1)
 				tmp = tmp.replace("true", "True")
 				tmp = tmp.replace("false", "False")
@@ -110,11 +124,6 @@ with gzip.open(log, "rb") as fin:
 					print(des, i, "Syntax Error:", tmp)
 					continue
 				for x in tags:
-					## 
-					# ignore groupID, fromVOS
-					#
-					#if x != "groupID" and x != "fromVOS":
-					#	out.append("\"%s\":\"%s\"" % (x, tags[x]))
 					out.append("\"%s\":\"%s\"" % (x, tags[x]))
 			else:
 				##
@@ -131,6 +140,8 @@ with gzip.open(log, "rb") as fin:
 			if jsonOutput:
 				with open(des+".json" ,"a") as fout:
 					fout.write("{" + ",".join(out) + "}\n")
+			if line_mode:
+				line_mode_write = True		
 				
 # des = os.path.basename(log)
 
