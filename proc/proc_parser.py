@@ -32,6 +32,8 @@ except IndexError:
 
 des = os.path.basename(log)
 regex = re.compile(b'[\x00-\x1f]')
+msg_regex = re.compile("\"message\"\:\"(.*?)(\",(?=\")|\"}$)")
+path_regex = re.compile("\"path\":\"(.*?)(\",(?=\")|\"}$)")
 ts = set()
 
 with gzip.open(log, "rb") as fin:
@@ -74,7 +76,7 @@ with gzip.open(log, "rb") as fin:
 				tmp = re.search("(\{.*\})", message).group(1)
 				tmp = tmp.replace("true", "True")
 				tmp = tmp.replace("false", "False")
-				r = re.search("\"message\"\:\"(.*?)(\",(?=\")|\"}$)", tmp)
+				r = msg_regex.search(tmp)
 				if r:
 					##
 					# if there is more than 10 '.' together, we remove them
@@ -86,12 +88,12 @@ with gzip.open(log, "rb") as fin:
 					else:
 						msg = r.group(1)	
 					tar = "\"message\":\"%s\"" % msg.replace("\"", "\'") + r.group(0)[-1]
-					tmp = re.sub("\"message\":\"(.*?)(\",(?=\")|\"}$)", tar, tmp)
-				r = re.search("\"path\":\"(.*?)(\",(?=\")|\"}$)", tmp)
+					tmp = msg_regex.sub(tar, tmp)
+				r = path_regex.search(tmp)
 				if r:
 					path = r.group(1).replace("\"", "\'")
 					tar = "\"path\":\"%s\"" % path + r.group(0)[-1]
-					tmp = re.sub("\"path\":\"(.*?)(\",(?=\")|\"}$)", tar, tmp)
+					tmp = path_regex.sub(tar, tmp)
 				##
 				# ignore addMembers, as the json is invalid
 				# i.e., "addedMembers":[ac_ws-inttest-testGroup-1416945206192]
