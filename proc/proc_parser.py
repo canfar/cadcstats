@@ -32,12 +32,10 @@ except IndexError:
 
 des = os.path.basename(log)
 regex = re.compile(b'[\x00-\x1f]')
-#output = []
 ts = set()
+
 with gzip.open(log, "rb") as fin:
 	for i, line in enumerate(fin):
-		#print(line)
-		#j = 1
 		out = []
 		line = regex.sub(b"", line).decode("utf-8").strip()
 		##
@@ -71,9 +69,8 @@ with gzip.open(log, "rb") as fin:
 			message = r.group(5)
 			if re.search("^END:", message):
 				if re.search("^END:\ +{", message):
-					while not re.search("(\{.*\})", message):
-						message += regex.sub(b"", next(fin)).decode("utf-8").strip()
-						#j += 1		
+					while not re.search("\{.*\}$", message):
+						message += regex.sub(b"", next(fin)).decode("utf-8").strip()	
 				tmp = re.search("(\{.*\})", message).group(1)
 				tmp = tmp.replace("true", "True")
 				tmp = tmp.replace("false", "False")
