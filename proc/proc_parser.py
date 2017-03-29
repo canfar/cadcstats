@@ -31,6 +31,7 @@ except IndexError:
     sys.exit(0)
 
 des = os.path.basename(log)
+regex = re.compile(b'[\x00-\x1f]')
 #output = []
 ts = set()
 with gzip.open(log, "rb") as fin:
@@ -38,7 +39,7 @@ with gzip.open(log, "rb") as fin:
 		#print(line)
 		#j = 1
 		out = []
-		line = line.decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "").replace("^M", "")
+		line = regex.sub(b"", line).decode("utf-8").strip()
 		##
 		# from John's config
 		#
@@ -71,13 +72,12 @@ with gzip.open(log, "rb") as fin:
 			if re.search("^END:", message):
 				if re.search("^END:\ +{", message):
 					while not re.search("(\{.*\})", message):
-						next_line = next(fin).decode("utf-8").replace("\x00", "").replace("\\r","").replace("\\n", "").replace("^M", "")
-						message += next_line.strip("\n")
+						message += regex.sub(b"", next(fin)).decode("utf-8").strip()
 						#j += 1		
 				tmp = re.search("(\{.*\})", message).group(1)
 				tmp = tmp.replace("true", "True")
 				tmp = tmp.replace("false", "False")
-				r = re.search("\"message\"\:\"(.*?)(\",|\"}$)", tmp)
+				r = re.search("\"message\"\:\"(.*?)(\",(?=\")|\"}$)", tmp)
 				if r:
 					##
 					# if there is more than 10 '.' together, we remove them
@@ -89,12 +89,12 @@ with gzip.open(log, "rb") as fin:
 					else:
 						msg = r.group(1)	
 					tar = "\"message\":\"%s\"" % msg.replace("\"", "\'") + r.group(0)[-1]
-					tmp = re.sub("\"message\":\"(.*?)(\",|\"}$)", tar, tmp)
-				r = re.search("\"path\":\"(.*?)(\",|\"}$)", tmp)
+					tmp = re.sub("\"message\":\"(.*?)(\",(?=\")|\"}$)", tar, tmp)
+				r = re.search("\"path\":\"(.*?)(\",(?=\")|\"}$)", tmp)
 				if r:
 					path = r.group(1).replace("\"", "\'")
 					tar = "\"path\":\"%s\"" % path + r.group(0)[-1]
-					tmp = re.sub("\"path\":\"(.*?)(\",|\"}$)", tar, tmp)
+					tmp = re.sub("\"path\":\"(.*?)(\",(?=\")|\"}$)", tar, tmp)
 				##
 				# ignore addMembers, as the json is invalid
 				# i.e., "addedMembers":[ac_ws-inttest-testGroup-1416945206192]
