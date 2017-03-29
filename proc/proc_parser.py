@@ -40,7 +40,7 @@ ts = set()
 with gzip.open(log, "rb") as fin:
 	for i, line in enumerate(fin):
 		out = []
-		line = regex.sub(b"", line).decode("utf-8").strip()
+		line = regex.sub(b"", line).decode("utf-8").strip().replace("\\r", "")
 		##
 		# from John's config
 		#
@@ -73,7 +73,7 @@ with gzip.open(log, "rb") as fin:
 			if re.search("^END:", message):
 				if re.search("^END:\ +{", message):
 					while not re.search("\{.*\}$", message):
-						message += regex.sub(b"", next(fin)).decode("utf-8").strip()	
+						message += regex.sub(b"", next(fin)).decode("utf-8").strip("\r").replace("\\r", "")	
 				tmp = re.search("(\{.*\})", message).group(1)
 				tmp = tmp.replace("true", "True")
 				tmp = tmp.replace("false", "False")
@@ -88,11 +88,15 @@ with gzip.open(log, "rb") as fin:
 						msg = re.sub("\.{10,}", " ", r.group(1))
 					else:
 						msg = r.group(1)	
-					tar = "\"message\":\"%s\"" % msg.replace("\"", "\'") + r.group(0)[-1]
-					tmp = msg_regex.sub(tar, tmp)
+					tar = "\"message\":\"%s\"" % msg.replace("\"", "\'") .replace("\\","")+ r.group(0)[-1]
+					try:
+						tmp = msg_regex.sub(tar, tmp)
+					except sre_constants.error:
+						print(des, i, "sre_constants.error")
+						continue
 				r = path_regex.search(tmp)
 				if r:
-					path = r.group(1).replace("\"", "\'")
+					path = r.group(1).replace("\"", "\'").replace("\\","")
 					tar = "\"path\":\"%s\"" % path + r.group(0)[-1]
 					tmp = path_regex.sub(tar, tmp)
 				##
@@ -118,7 +122,7 @@ with gzip.open(log, "rb") as fin:
 				#
 				if re.search("^START:", message):
 					continue
-				out.append("\"message\":\"%s\"" % message.replace("\"","\'"))
+				out.append("\"message\":\"%s\"" % message.replace("\"","\'").replace("\\",""))
 			if csvOutput:
 				#with gzip.open(log+".csv.gz","wt") as fout:
 				with open(des+".csv","a") as fout:
