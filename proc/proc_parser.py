@@ -32,6 +32,7 @@ except IndexError:
 
 des = os.path.basename(log)
 regex = re.compile(b'[\x00-\x1f]')
+line_regex = re.compile("(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{3})?) ([\w ]*) \[.+?\] INFO  (\w*)  - (.+)")
 msg_regex = re.compile("\"message\"\:\"(.*?)(\",(?=\")|\"}$)")
 path_regex = re.compile("\"path\":\"(.*?)(\",(?=\")|\"}$)")
 ts = set()
@@ -52,7 +53,7 @@ with gzip.open(log, "rb") as fin:
 		# group(4): servlet
 		# group(5): message after '-'
 		#
-		r = re.search("(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{3})?) ([\w ]*) \[.+?\] INFO  (\w*)  - (.+)", line)
+		r = line_regex.search(line)
 		if r:
 			d = datetime.strptime(r.group(1), "%Y-%m-%d %H:%M:%S.%f")
 			t = int(time.mktime(d.timetuple())) * 1000 + d.microsecond / 1000
