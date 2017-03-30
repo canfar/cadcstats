@@ -45,8 +45,10 @@ if not redo_mode:
 des = os.path.basename(log)
 regex = re.compile(b'[\x00-\x1f]')
 line_regex = re.compile("(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{3})?) ([\w ]*) \[.+?\] INFO  (\w*)  - (.+)")
-msg_regex = re.compile("\"message\"\:\"(.*?)(\",(?=\")|\"}$)")
+msg_regex = re.compile("\"message\"\:\"(.*?)\"}$")
 path_regex = re.compile("\"path\":\"(.*?)(\",(?=\")|\"}$)")
+wtf_regex = re.compile('","}$')
+wtf2_regex = re.compile('",","')
 ts = set()
 
 j = 0
@@ -65,6 +67,8 @@ with gzip.open(log, "rb") as fin, open(log + ".redo", "a") as errout:
 				j += 1	
 		out = []
 		line = regex.sub(b"", line).decode("utf-8").strip().replace("\\r", "").replace("\\n", "").replace("\\u0000", "")
+		line = wtf_regex.sub('"}', line)
+		line = wtf2_regex.sub('","', line)
 		##
 		# from John's config
 		#
