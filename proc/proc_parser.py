@@ -50,7 +50,8 @@ path_regex = re.compile("\"path\":\"(.*?)(\",(?=\")|\"}$)")
 ts = set()
 
 j = 0
-with gzip.open(log, "rb") as fin:
+with gzip.open(log, "rb") as fin, open(log + ".redo", "a") as errout:
+	errout.write("=========\n")
 	for i, line in enumerate(fin):
 		# if redo_mode_write:
 		# 	break
@@ -115,7 +116,7 @@ with gzip.open(log, "rb") as fin:
 					try:
 						tmp = msg_regex.sub(tar, tmp)
 					except sre_constants.error:
-						print(des, i, "sre_constants.error")
+						errout.write(i, "sre_constants.error\n")
 						continue
 				r = path_regex.search(tmp)
 				if r:
@@ -130,7 +131,7 @@ with gzip.open(log, "rb") as fin:
 				try:
 					tags = eval(tmp)
 				except SyntaxError:
-					print(des, i, "Syntax Error:", tmp)
+					errout.write(i, "Syntax Error:", tmp, "\n")
 					continue
 				for x in tags:
 					out.append("\"%s\":\"%s\"" % (x, tags[x]))
