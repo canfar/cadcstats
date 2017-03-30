@@ -52,7 +52,7 @@ wtf2_regex = re.compile('",","')
 ts = set()
 
 j = 0
-with gzip.open(log, "rb") as fin, open(log + ".redo", "a") as errout:
+with gzip.open(log, "rb") as fin, open(des + ".redo", "a") as errout:
 	errout.write("=========\n")
 	for i, line in enumerate(fin):
 		# if redo_mode_write:
