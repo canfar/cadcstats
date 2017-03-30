@@ -55,6 +55,8 @@ with gzip.open(log, "rb") as fin:
 		# if redo_mode_write:
 		# 	break
 		if redo_mode:
+			if j >= len(redo_lines):
+				break
 			line_num = redo_lines[j]
 			if i != line_num:
 				continue
