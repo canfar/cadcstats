@@ -15,30 +15,32 @@ if not (csvOutput or jsonOutput):
 	print("at least specify one type of output, -csv or -json ...")
 	sys.exit(0)
 
-line_mode = False
-line_mode_write = False
-if "-line" in sys.argv:
-	line_mode = True
-	try:
-		line_num = int(sys.argv[sys.argv.index("-line") + 1])
-	except IndexError:
-	    print("no line # specified by -line ...")
-	    sys.exit(0)	
+redo_mode = False
+#redo_mode_write = False
+if "-redo" in sys.argv:
+	redo_mode = True
+	redo_file = sys.argv[sys.argv.index("-redo") + 1]
+	path = redo_file.split("_")
+	log = "/data/tomcat/" + path[0] + "/archive/" + path[1] + "/" + ".".join(redo_file.split(".")[:-1])
+	with open(redo_file, "r") as fin:
+		# this list of line int will always be sorted, since the lines were sequentially read and written
+		redo_lines = [int(_) for _ in fin.read().strip().split()]
 
-try:
-    log = sys.argv[sys.argv.index("-f") + 1]
-    try:
-        f = open(log, "r")
-        f.close()
-    except FileNotFoundError:
-        print("the input file specified by -f cannot be found ...")
-        sys.exit(0)
-except ValueError:
-    print("missing input flag -f ...")
-    sys.exit(0)
-except IndexError:
-    print("no file specified by -f ...")
-    sys.exit(0)
+if not redo_mode:
+	try:
+	    log = sys.argv[sys.argv.index("-f") + 1]
+	    try:
+	        f = open(log, "r")
+	        f.close()
+	    except FileNotFoundError:
+	        print("the input file specified by -f cannot be found ...")
+	        sys.exit(0)
+	except ValueError:
+	    print("missing input flag -f ...")
+	    sys.exit(0)
+	except IndexError:
+	    print("no file specified by -f ...")
+	    sys.exit(0)
 
 des = os.path.basename(log)
 regex = re.compile(b'[\x00-\x1f]')
@@ -47,12 +49,17 @@ msg_regex = re.compile("\"message\"\:\"(.*?)(\",(?=\")|\"}$)")
 path_regex = re.compile("\"path\":\"(.*?)(\",(?=\")|\"}$)")
 ts = set()
 
+j = 0
 with gzip.open(log, "rb") as fin:
 	for i, line in enumerate(fin):
-		if line_mode_write:
-			break
-		if line_mode and i != line_num:
-			continue
+		# if redo_mode_write:
+		# 	break
+		if redo_mode:
+			line_num = redo_lines[j]
+			if i != line_num:
+				continue
+			else:
+				j += 1	
 		out = []
 		line = regex.sub(b"", line).decode("utf-8").strip().replace("\\r", "").replace("\\n", "").replace("\\u0000", "")
 		##
@@ -140,8 +147,8 @@ with gzip.open(log, "rb") as fin:
 			if jsonOutput:
 				with open(des+".json" ,"a") as fout:
 					fout.write("{" + ",".join(out) + "}\n")
-			if line_mode:
-				line_mode_write = True		
+			# if redo_mode:
+			# 	redo_mode_write = True		
 				
 # des = os.path.basename(log)
 
