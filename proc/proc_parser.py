@@ -122,13 +122,17 @@ with gzip.open(log, "rb") as fin, open(des + ".err", "w") as errout:
 					try:
 						tmp = msg_regex.sub(tar, tmp)
 					except sre_constants.error:
-						errout.write(i, "sre_constants.error\n")
+						errout.write("{} sre_constants.error\n".format(i))
 						continue
 				r = path_regex.search(tmp)
 				if r:
 					path = r.group(1).replace("\"", "\'").replace("\\","")
 					tar = "\"path\":\"%s\"" % path + r.group(0)[-1]
-					tmp = path_regex.sub(tar, tmp)
+					try:
+						tmp = path_regex.sub(tar, tmp)
+					except sre_constants.error:
+						errout.write("{} sre_constants.error\n".format(i))
+						continue
 				##
 				# ignore addMembers, as the json is invalid
 				# i.e., "addedMembers":[ac_ws-inttest-testGroup-1416945206192]
@@ -137,7 +141,7 @@ with gzip.open(log, "rb") as fin, open(des + ".err", "w") as errout:
 				try:
 					tags = eval(tmp)
 				except SyntaxError:
-					errout.write(i, "Syntax Error:", tmp, "\n")
+					errout.write("{} Syntax Error: {}\n".format(i, tmp))
 					continue
 				for x in tags:
 					out.append("\"%s\":\"%s\"" % (x, tags[x]))
