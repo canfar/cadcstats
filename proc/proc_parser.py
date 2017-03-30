@@ -52,8 +52,7 @@ wtf2_regex = re.compile('",","')
 ts = set()
 
 j = 0
-with gzip.open(log, "rb") as fin, open(des + ".redo", "a") as errout:
-	errout.write("=========\n")
+with gzip.open(log, "rb") as fin, open(des + ".err", "w") as errout:
 	for i, line in enumerate(fin):
 		# if redo_mode_write:
 		# 	break
@@ -101,7 +100,10 @@ with gzip.open(log, "rb") as fin, open(des + ".redo", "a") as errout:
 			if re.search("^END:", message):
 				if re.search("^END:\ +{", message):
 					while not re.search("\{.*\}$", message):
-						message += regex.sub(b"", next(fin)).decode("utf-8").strip("\r").replace("\\r", "").replace("\\n", "").replace("\\u0000", "")	
+						next_line = regex.sub(b"", next(fin)).decode("utf-8").strip("\r").replace("\\r", "").replace("\\n", "").replace("\\u0000", "")
+						next_line = wtf_regex.sub('"}', next_line)
+						next_line = wtf2_regex.sub('","', next_line)
+						message += next_line
 				tmp = re.search("(\{.*\})", message).group(1)
 				tmp = tmp.replace("true", "True")
 				tmp = tmp.replace("false", "False")
