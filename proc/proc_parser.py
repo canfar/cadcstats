@@ -73,7 +73,7 @@ def parse(tom):
 	path_regex = re.compile("\"path\":\"(.*?)(\",(?=\")|\"}$)")
 	wtf_regex = re.compile('","}$')
 	wtf2_regex = re.compile('",","')
-	ts = set()
+	# ts = set()
 
 	j = 0
 	with gzip.open(tom.log, "rb") as fin, open(tom.dest() + ".err", "w") as errout:
@@ -92,7 +92,8 @@ def parse(tom):
 			line = wtf_regex.sub('"}', line)
 			line = wtf2_regex.sub('","', line)
 			##
-			# from John's config
+			# drop RemoteEventLogger and LogEventsServlet according to John's config
+			# drop meetingsvc becoz we are not not interested
 			#
 			if re.search("RemoteEventLogger", line) or re.search("LogEventsServlet", line) or re.search("meetingsvc", line):
 				continue
@@ -155,8 +156,9 @@ def parse(tom):
 							errout.write("{} sre_constants.error\n".format(i))
 							continue
 					##
-					# ignore addMembers, as the json is invalid
+					# ignore addMembers field, as the json is invalid
 					# i.e., "addedMembers":[ac_ws-inttest-testGroup-1416945206192]
+					# duplicated info is kept in other fields anyway
 					#
 					tmp = re.sub("\"(add|delet)edMembers\":\[.*?\],?", "", tmp)
 					try:
