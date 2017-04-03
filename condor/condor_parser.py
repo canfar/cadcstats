@@ -222,7 +222,7 @@ with open(log, "r", encoding='utf-8') as fin:
 	# preOS, Project is traslate through ownerProj dictionary
 	owner = ''
 	# a set to dissolve timestamp conflicts
-	ts = set()
+	# ts = set()
 	content = fin.readlines()
 	for i, line in enumerate(content):
 		t = line.strip().split(" = ", 1)
@@ -232,15 +232,15 @@ with open(log, "r", encoding='utf-8') as fin:
 				pass
 			# convert QDate into millisecond and add 1 ms to avoid collision
 			elif t[0] == "QDate":
-				t[1] = int(t[1]) * 1000
-				k = 1
-				tmp = t[1]
-				while tmp in ts:
-					tmp = t[1] + k
-					k += 1
-				ts.add(tmp)
+				t[1] = int(t[1])# * 1000
+				#k = 1
+				#tmp = t[1]
+				#while tmp in ts:
+				#	tmp = t[1] + k
+				#	k += 1
+				#ts.add(tmp)
 				# in ms: 2014-1-1 00:00:00		2015-1-1 00:00:00
-				if t[1] >= 1388534400000 and tmp < 1420070400000:
+				if t[1] >= 1388534400 and t[1] < 1420070400:
 					yr2014 = True 
 				t[1] = str(tmp)
 			# elif t[0] == "RemoveReason":
