@@ -98,6 +98,10 @@ def parse(tom):
 			#
 			if re.search("RemoteEventLogger", line) or re.search("LogEventsServlet", line):
 				continue
+			# drop service:ac_ws and servlet:Profiler. there are tons of these events with duplicated timestamp, which brings huge problem by
+			# offsetting the entire timeline	
+			if re.search("ac_ws.+Profiler", line):
+				continue	
 			##
 			# group(1): time
 			# group(2): optional microsec
