@@ -79,8 +79,6 @@ def parse(tom):
 	with gzip.open(tom.log, "rb") as fin, open(tom.dest() + ".err", "w") as errout:
 		buff = []
 		for i, line in enumerate(fin):
-			# if redo_mode_write:
-			# 	break
 			if tom.redo_mode:
 				if j >= len(tom.redo_lines):
 					break
@@ -96,33 +94,27 @@ def parse(tom):
 			##
 			# from John's config
 			#
-			if re.search("RemoteEventLogger", line) or re.search("LogEventsServlet", line):
+			if re.search("RemoteEventLogger", line) or re.search("LogEventsServlet", line) or re.search("meetingsvc", line):
 				continue
-			# drop service:ac_ws and servlet:Profiler. there are tons of these events with duplicated timestamp, which brings huge problem by
-			# offsetting the entire timeline	
-			if re.search("ac_ws.+Profiler", line):
-				continue	
 			##
 			# group(1): time
-			# group(2): optional microsec
+			# group(2): optional milisec
 			# group(3): service
 			# group(4): servlet
 			# group(5): message after '-'
 			#
 			r = line_regex.search(line)
 			if r:
-				d = datetime.strptime(r.group(1), "%Y-%m-%d %H:%M:%S.%f")
-				t = int(time.mktime(d.timetuple())) * 1000 + d.microsecond / 1000
-				k = 1
-				tmp = t
-				while tmp in ts:
-					tmp = t + k
-					k += 1
-				ts.add(tmp)
-				t = tmp
-				out.append("\"timestamp\":%i" % t)
-				if r.group(3) == "meetingsvc":
-					continue
+				# d = datetime.strptime(r.group(1), "%Y-%m-%d %H:%M:%S.%f")
+				# t = int(time.mktime(d.timetuple())) * 1000 + d.microsecond / 1000
+				# k = 1
+				# tmp = t
+				# while tmp in ts:
+				# 	tmp = t + k
+				# 	k += 1
+				# ts.add(tmp)
+				# t = tmp
+				out.append("\"timestamp\":\"%s\"" % r.group(1))
 				out.append("\"service\":\"%s\"" % r.group(3))
 				out.append("\"servlet\":\"%s\"" % r.group(4))
 				message = r.group(5)
