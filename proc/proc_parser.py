@@ -41,12 +41,15 @@ def init(buff_size):
 
 	if "-redo" in sys.argv:
 		tomcat_log.redo_mode = True
+		tomcat_log.redo_lines = []
 		redo_file = sys.argv[sys.argv.index("-redo") + 1]
 		path = redo_file.split("_")
 		tomcat_log.log = "/data/tomcat/" + path[0] + "/archive/" + path[1] + "/" + ".".join(redo_file.split(".")[:-1])
 		with open(redo_file, "r") as fin:
 			# this list of line int will always be sorted, since the lines were sequentially read and written
-			tomcat_log.redo_lines = [int(_) for _ in fin.read().strip().split()]
+			for line in fin:
+				tomcat_log.redo_lines.append(int(line.split()[0]))
+			# tomcat_log.redo_lines = [int(_) for _ in fin.read().strip().split()]
 
 	if not tomcat_log.redo_mode:
 		try:
@@ -82,7 +85,7 @@ def parse(tom):
 			if tom.redo_mode:
 				if j >= len(tom.redo_lines):
 					break
-				line_num = redo_lines[j]
+				line_num = tom.redo_lines[j]
 				if i != line_num:
 					continue
 				else:
