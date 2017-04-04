@@ -74,6 +74,7 @@ def parse(tom):
 	line_regex = re.compile("(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{3})?) ([\w ]*) \[.+?\] INFO  (\w*)  - (.+)")
 	msg_regex = re.compile("\"message\"\:\"(.*?)\"}$")
 	path_regex = re.compile("\"path\":\"(.*?)(\",(?=\")|\"}$)")
+	ua_regex = re.compile("\"userAgent\":\"{2}(.+?)\"{2},")
 	wtf_regex = re.compile('","}$')
 	wtf2_regex = re.compile('",","')
 	# ts = set()
@@ -163,6 +164,15 @@ def parse(tom):
 						except sre_constants.error:
 							errout.write("{} sre_constants.error\n".format(i))
 							continue
+					r = ua_regex.search(tmp)
+					if r:
+						ua = r.group(1)	
+						tar = "\"userAgent\":\"" + ua + "\","
+					try:
+							tmp = ua_regex.sub(tar, tmp)
+						except sre_constants.error:
+							errout.write("{} sre_constants.error\n".format(i))
+							continue	
 					##
 					# ignore addMembers field, as the json is invalid
 					# i.e., "addedMembers":[ac_ws-inttest-testGroup-1416945206192]
