@@ -75,7 +75,7 @@ def parse(tom):
 	msg_regex = re.compile("\"message\"\:\"(.*?)\"}$")
 	path_regex = re.compile("\"path\":\"(.*?)(\",(?=\")|\"}$)")
 	ua_regex = re.compile("\"userAgent\":\"{2}(.+?)\"{2},")
-	query_regex = re.compile("\"query\":\"(.*?)(\",(?=\")|\"}$)")
+	query_regex = re.compile("\"query\":\"(.*?)\",\"")
 	wtf_regex = re.compile('","}$')
 	wtf2_regex = re.compile('",","')
 	# ts = set()
