@@ -75,6 +75,7 @@ def parse(tom):
 	msg_regex = re.compile("\"message\"\:\"(.*?)\"}$")
 	path_regex = re.compile("\"path\":\"(.*?)(\",(?=\")|\"}$)")
 	ua_regex = re.compile("\"userAgent\":\"{2}(.+?)\"{2},")
+	query_regex = re.compile("\"query\":\"(.*?)(\",(?=\")|\"}$)")
 	wtf_regex = re.compile('","}$')
 	wtf2_regex = re.compile('",","')
 	# ts = set()
@@ -164,6 +165,15 @@ def parse(tom):
 						except sre_constants.error:
 							errout.write("{} sre_constants.error\n".format(i))
 							continue
+					r = query_regex.search(tmp)
+					if r:
+						query = r.group(1).replace("\"", "\'").replace("\\","")
+						tar = "\"query\":\"%s\"" % query + r.group(0)[-1]
+						try:
+							tmp = path_regex.sub(tar, tmp)
+						except sre_constants.error:
+							errout.write("{} sre_constants.error\n".format(i))
+							continue		
 					r = ua_regex.search(tmp)
 					if r:
 						ua = r.group(1)	
