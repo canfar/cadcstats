@@ -168,7 +168,7 @@ def parse(tom):
 					r = query_regex.search(tmp)
 					if r:
 						query = r.group(1).replace("\"", "\'").replace("\\","")
-						tar = "\"query\":\"%s\"" % query + r.group(0)[-1]
+						tar = "\"query\":\"%s\"" % query + r.group(0)[-2]
 						try:
 							tmp = path_regex.sub(tar, tmp)
 						except sre_constants.error:
