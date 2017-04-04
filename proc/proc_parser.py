@@ -125,7 +125,12 @@ def parse(tom):
 				if re.search("^END:", message):
 					if re.search("^END:\ +{", message):
 						while not re.search("\{.*\}$", message):
-							next_line = regex.sub(b"", next(fin)).decode("utf-8").strip("\r").replace("\\r", "").replace("\\n", "").replace("\\u0000", "")
+							try:
+								next_line = regex.sub(b"", next(fin)).decode("utf-8").strip("\r").replace("\\r", "").replace("\\n", "").replace("\\u0000", "")
+							except StopIteration:
+								errout.write("{} StopIteration, next(fin) reaches EOF!!\n".format(i))	
+								write_output(buff, tom.dest(), tom.csvOutput, tom.jsonOutput)
+								return
 							next_line = wtf_regex.sub('"}', next_line)
 							next_line = wtf2_regex.sub('","', next_line)
 							message += next_line
@@ -168,6 +173,9 @@ def parse(tom):
 						tags = eval(tmp)
 					except SyntaxError:
 						errout.write("{} Syntax Error: {}\n".format(i, tmp))
+						continue
+					except TypeError:
+						errout.write("{} Type Error: {}\n".format(i, tmp))
 						continue
 					for x in tags:
 						out.append("\"%s\":\"%s\"" % (x, tags[x]))
