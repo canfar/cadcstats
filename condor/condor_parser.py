@@ -242,7 +242,7 @@ with open(log, "r", encoding='utf-8') as fin:
 				# in ms: 2014-1-1 00:00:00		2015-1-1 00:00:00
 				if t[1] >= 1388534400 and t[1] < 1420070400:
 					yr2014 = True 
-				t[1] = str(tmp)
+				t[1] = str(t[1])
 			# elif t[0] == "RemoveReason":
 			#	t[1] = '"' + t[1] + '"'
 			elif t[0] == "LastRemoteHost":
