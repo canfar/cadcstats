@@ -4,13 +4,12 @@ from elasticsearch import Elasticsearch, TransportError
 from elasticsearch.helpers import scan
 import requests
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 import re
 from ipaddress import IPv4Address as ipv4, AddressValueError
 import time
 from bokeh.plotting import figure, output_file, show, save
-from bokeh.models import FuncTickFormatter, FixedTicker, NumeralTickFormatter, Div, Title
+from bokeh.models import FuncTickFormatter, FixedTicker, NumeralTickFormatter, Div, Title, LinearAxis, Range1d
 from bokeh.charts import Bar, Donut
 from bokeh.layouts import gridplot, column, row
 
@@ -159,10 +158,10 @@ def fig3(conn, idx):
 			"aggs" : {
 				"avgrate_perwk" : {
 					"date_histogram" : {
-			    		"field" : "@timestamp",
-					    "interval" : "1W",
-					    "format" : "yyyy-MM-dd" 
-					},
+		                "field" : "@timestamp",
+		                "interval" : "week",
+		                "format" : "yyyy-MM-dd" 
+		            },
 					"aggs": {
 						"avgrate" : { 
 							"avg" : { 
@@ -180,24 +179,58 @@ def fig3(conn, idx):
 		raise	
 	#print(res["aggregations"]["avgrate_perwk"]["buckets"])
 	wk = [_["key_as_string"] for _ in res["aggregations"]["avgrate_perwk"]["buckets"]]
-	avg_dur = [_["avgrate"]["value"] for _ in res["aggregations"]["avgrate_perwk"]["buckets"]]
-	df = pd.DataFrame(list(zip(wk, avg_dur)), columns = ["time", "avg_dur"]).set_index("time")
-	# load condor stats and use df's index
-	df2 = pd.read_csv("/Users/will/Downloads/condor.csv")
-	df2 = df2.set_index(df.index[:len(df2)])["Count"]
-	#print(df2)
-	df.plot(kind = "bar", ax = ax)
-	ax.set_title('Average Rate over Time of "transfer_ws" from batch.canfar.net VS Number of Batching Jobs Completed')
-	ax.set_ylabel("Average Rate")	
-	ax.legend(["transfer_ws"], loc = 2)
-	ax.set_xticklabels(ax.xaxis.get_ticklabels(), rotation = 45, size = "xx-small")
-	ax.set_xticks([_ - 1 for _ in ax.get_xticks()])
-	ax2 = ax.twinx()
-	df2.plot(kind = "line", ax = ax2, color = "red")
-	ax2.legend(["Batching jobs"], loc = 1)
-	ax2.set_ylabel("Number of Batching Jobs Completed")
-	plt.show()
-	#print(ax.get_xticks())	
+	avg_rate = [_["avgrate"]["value"] for _ in res["aggregations"]["avgrate_perwk"]["buckets"]]
+	df = pd.DataFrame(list(zip(wk, avg_rate)), columns = ["time", "avg_rate"]).set_index("time")
+
+	query2 = {
+		"query" : {
+			"match_all": {}
+		},
+		"aggs" : {
+			"numjobs_perwk" : {
+				"date_histogram" : {
+		    		"field" : "@timestamp",
+				    "interval" : "week",
+				    "format" : "yyyy-MM-dd"
+				}
+			}	
+		}
+	}
+	conn2 = Elasticsearch("http://206.12.59.36:9200")
+	try:
+		res = conn2.search(index = "logs-condor", body = query2)
+	except TransportError as e:
+		print(e.info)
+		raise
+	#print(res)	
+	wk2 = [_["key_as_string"] for _ in res["aggregations"]["numjobs_perwk"]["buckets"]]
+	numjobs = [_["doc_count"] for _ in res["aggregations"]["numjobs_perwk"]["buckets"]]
+	df2 = pd.DataFrame(list(zip(wk2, numjobs)), columns = ["time", "numjobs"]).set_index("time")
+
+	df = df.join(df2)
+	df = df[pd.notnull(df["numjobs"])].fillna(0)
+	
+	x = [_ for _ in range(len(df))]
+	p = figure(plot_width = 1200, toolbar_location = "above")
+	p.vbar(x = x, top = df["avg_rate"], bottom = 0, width = 0.5, legend = "Avg Rate")
+	p.y_range = Range1d(0, df["avg_rate"].max() * 1.3)
+	p.yaxis.axis_label = "Average Transfer Rate"
+	p.extra_y_ranges = {"right_yaxis": Range1d(0, df["numjobs"].max() * 1.1)}
+	p.add_layout(LinearAxis(y_range_name = "right_yaxis", axis_label = "Number of Batch Jobs"), "right")
+	p.line(x = x, y = df["numjobs"], line_width = 2, y_range_name = "right_yaxis", color = "red", legend = "Batch Jobs")
+	p.legend.location = "top_left"
+	d = dict(zip(x, df.index))
+	p.xaxis[0].ticker = FixedTicker(ticks = x)
+	p.xaxis[0].formatter = FuncTickFormatter(code = """dic = """ + str(d) + """
+    if (tick in dic) {
+        return dic[tick]
+    }
+    else {
+        return ''
+    }""")
+	p.xaxis.major_label_orientation = np.pi/4
+	output_file("fig3.html")
+	show(column(Div(text = "<h1>Average Transfer Rate of <i>batch.canfar.net</i> VS Number of Batch Jobs</h1>", width = 1000), p))	
 
 @timing
 def fig4(conn, idx):
@@ -221,6 +254,12 @@ def fig4(conn, idx):
 					    }    
 				    },
 				    "aggs" : {
+				    	"start_date" : {
+							"min" : { "field" : "@timestamp" }
+						},
+						"end_date" : {
+							"max" : { "field" : "@timestamp" }
+						},
 				        "ip_ranges" : {
 				            "ip_range" : {
 				                "field" : "clientip",
@@ -252,28 +291,6 @@ def fig4(conn, idx):
 			
 		tot_gbs = res["aggregations"]["tot_giga"]["value"]
 		tot_events = res["hits"]["total"]
-
-		q2 = {
-			"query" : {
-				"bool" : {
-					"must" : [
-						{ "term" : { "service" : "transfer_ws" } },
-						{ "term" : { "phase" : "END" } },
-						{ "term" : { "method" : m } },
-						{ "term" : { "success" : True } }
-					]
-				}    
-			},
-			"aggs" : {
-				"start_date" : {
-					"min" : { "field" : "@timestamp" }
-				},
-				"end_date" : {
-					"max" : { "field" : "@timestamp" }
-				}
-			}
-		}	
-		res = conn.search(index = idx, body = q2)
 		start = res["aggregations"]["start_date"]['value_as_string']
 		end = res["aggregations"]["end_date"]['value_as_string']
 
@@ -321,6 +338,12 @@ def fig5(conn, idx):
 						    }    
 					    },
 					    "aggs" : {
+						    "start_date" : {
+								"min" : { "field" : "@timestamp" }
+							},
+							"end_date" : {
+								"max" : { "field" : "@timestamp" }
+							},
 					        "ip_ranges" : {
 					            "ip_range" : {
 					                "field" : "clientip",
@@ -342,33 +365,10 @@ def fig5(conn, idx):
 				events.append({iprange[_]:res["aggregations"]["ip_ranges"]["buckets"][0]["doc_count"]})
 				
 			tot_events = res["hits"]["total"]
-
-			q2 = {
-				"query" : {
-					"bool" : {
-						"must" : [
-							{ "term" : { "service" : "transfer_ws" } },
-							{ "term" : { "phase" : "END" } },
-							{ "term" : { "method" : m } },
-							{ "term" : { "success" : True } }
-						]
-					}    
-				},
-				"aggs" : {
-					"start_date" : {
-						"min" : { "field" : "@timestamp" }
-					},
-					"end_date" : {
-						"max" : { "field" : "@timestamp" }
-					}
-				}
-			}	
-			res = conn.search(index = idx, body = q2)
 			start = res["aggregations"]["start_date"]['value_as_string']
 			end = res["aggregations"]["end_date"]['value_as_string']
 
 			df_events = pd.DataFrame.from_dict(events).sum().to_frame().T
-
 			df = pd.concat([df_events], ignore_index = True)
 
 			df["NRC"] = df["NRC+CADC"] - df["CADC"]
@@ -392,6 +392,6 @@ if __name__ == "__main__":
 	conn = Conn().conn
 	# fig1(conn, "delivery_history-*")
 	# fig2(conn, "delivery_history-*")
-	# fig3(conn, "tomcat-svc-*")
+	fig3(conn, "delivery_history-*")
 	# fig4(conn, "delivery_history-*")
-	fig5(conn, "delivery_history-*")
+	# fig5(conn, "delivery_history-*")
