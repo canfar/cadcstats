@@ -9,6 +9,11 @@ import numpy as np
 import re
 from ipaddress import IPv4Address as ipv4, AddressValueError
 import time
+from bokeh.plotting import figure, output_file, show, save
+from bokeh.models import FuncTickFormatter, FixedTicker, NumeralTickFormatter, Div, Title
+from bokeh.charts import Bar, Donut
+from bokeh.layouts import gridplot, column, row
+
 
 odin = 'http://odin.cadc.dao.nrc.ca:9200'
 
@@ -48,10 +53,11 @@ def timing(func):
 	return wrapper	
 
 def fig1(conn, idx):
-	fig = plt.figure(figsize = (60, 40))
+	# fig = plt.figure(figsize = (60, 40))
 	method = ["PUT","GET"]
 	service = ["transfer_ws", "data_ws", "vospace_ws"]
 	p = 1
+	plots = []
 	for j, s in enumerate(service):
 		for i, m in enumerate(method):
 			query = {
@@ -80,20 +86,27 @@ def fig1(conn, idx):
 			_ = pd.DataFrame([res["aggregations"]["req_by_dom"]["sum_other_doc_count"], "Others"]).T
 			_.columns = df.columns
 			df = df.append(_, ignore_index = True)
-			ax = fig.add_subplot(3, 2, p)
-			df.plot(kind = "pie", y = "doc_count", ax = ax, autopct = '%1.1f%%', labels = df["key"], legend = False, fontsize = "x-small")
-			ax.set_title("service: {0}, method: {1}".format(s, m))
-			ax.set_ylabel("")
-			ax.axis('equal')
-			p += 1
-	plt.show()
+			df.columns = ["Events", "Domains"]
+			plots.append(Donut(df, label = "Domains", values = "Events", title = "service: {0}, method: {1}".format(s, m)))
+	grid = gridplot(plots, ncols = 2, plot_width = 600, plot_height = 600, title = "IS THIS A TITLE? nooooo its not working asdaw34q2AEWTQ!#@$$@%")
+	output_file("fig1.html")
+	show(column(Div(text = "<h1>BIG ASS TITLE</h1>"), grid))		
+			#print(df)		
+	# 		ax = fig.add_subplot(3, 2, p)
+	# 		df.plot(kind = "pie", y = "doc_count", ax = ax, autopct = '%1.1f%%', labels = df["key"], legend = False, fontsize = "x-small")
+	# 		ax.set_title("service: {0}, method: {1}".format(s, m))
+	# 		ax.set_ylabel("")
+	# 		ax.axis('equal')
+	# 		p += 1
+	# plt.show()
 
 def fig2(conn, idx):
-	fig = plt.figure(figsize = (30, 10))
+	# fig = plt.figure(figsize = (30, 10))
 	service = ["transfer_ws", "data_ws", "vospace_ws"]
 	method = ["GET", "PUT"]
 	pos = [0, 1, -1]
 	clr = ["blue", "purple", "green"]
+	plots = []
 	for j, s in enumerate(service):
 		ax = fig.add_subplot(3, 1, j + 1)
 		for i, m in enumerate(method):
@@ -132,14 +145,19 @@ def fig2(conn, idx):
 			#print(res["aggregations"]["avgdur_perwk"]["buckets"])
 			wk = [_["key_as_string"] for _ in res["aggregations"]["avgdur_perwk"]["buckets"]]
 			avg_dur = [_["avgdur"]["value"] for _ in res["aggregations"]["avgdur_perwk"]["buckets"]]
-			df = pd.DataFrame(list(zip(wk, avg_dur)), columns = ["time", "avg_dur"]).set_index("time")	
-			df.plot(kind = "bar", ax = ax, width = 0.3, logy = True, position = pos[i], color = clr[i])
-			ax.set_title("Average Duration over Time: service: {0}".format(service[j]))
-			ax.set_ylabel("Average Duration")
-			ax.set_xticklabels(ax.xaxis.get_ticklabels(), rotation = 45, size = "xx-small")
-		ax.legend(method, loc = 2)
-		ax.set_xticks([_ - 1 for _ in ax.get_xticks()])	
-	plt.show()
+			df = pd.DataFrame(list(zip(wk, avg_dur)), columns = ["time", "avg_dur"])#.set_index("time")
+			df["avg_dur"] = df["avg_dur"] / 1000
+			plots.append(Bar(df, "time", "avg_dur", legend = False, xlabel = None, yscale = "log", ylabel = "Average Duration", title = "Average Duration per Week (Sec): service: {0}, method: {1}".format(service[j], method[i])))	
+	grid = gridplot(plots, ncols = 1, plot_width = 1200, plot_height = 300)
+	output_file("fig2.html")
+	show(column(Div(text = "<h1>BIG ASS TITLE</h1>"), grid))			
+	# 		df.plot(kind = "bar", ax = ax, width = 0.3, logy = True, position = pos[i], color = clr[i])
+	# 		ax.set_title("Average Duration over Time: service: {0}".format(service[j]))
+	# 		ax.set_ylabel("Average Duration")
+	# 		ax.set_xticklabels(ax.xaxis.get_ticklabels(), rotation = 45, size = "xx-small")
+	# 	ax.legend(method, loc = 2)
+	# 	ax.set_xticks([_ - 1 for _ in ax.get_xticks()])	
+	# plt.show()
 
 def fig3(conn, idx):
 	fig = plt.figure(figsize = (10, 5))
@@ -198,12 +216,14 @@ def fig3(conn, idx):
 	plt.show()
 	#print(ax.get_xticks())	
 
+@timing
 def fig4(conn, idx):
 	
 	iprange = {("132.246.194.0", "132.246.194.24"):"CADC", ("132.246.195.0", "132.246.195.24"):"CADC", ("132.246.217.0", "132.246.217.24"):"CADC", ("132.246.0.0", "132.246.255.255"):"NRC+CADC", ("192.168.0.0", "192.168.255.255"):"CADC-Private", ("206.12.0.0", "206.12.255.255"):"CC"}
 	method = ["GET", "PUT"]
-	fig = plt.figure()
+	# fig = plt.figure()
 	i = 0
+	plots = []
 	for m in method:
 		events, gbs = [], []
 		for _ in iprange:
@@ -286,34 +306,43 @@ def fig4(conn, idx):
 		df["NRC"] = df["NRC+CADC"] - df["CADC"]
 		df["CADC"] = df["CADC"] + df["CADC-Private"]
 		df["Others"] = pd.DataFrame([tot_gbs, tot_events])[0] - df["CADC"] - df["NRC"] - df["CC"]
-		df = df[["CADC","NRC","CC", "Others"]].T
+		df = df[["CADC","NRC","CC", "Others"]].T.reset_index()
+		#print(len(df.index))
+		#df["Domains"] = df.index
+		df.columns = ["Domains", "Size", "Events"]
 		#print(df) 
 
-		for j in range(2):
-			ax = fig.add_subplot(2, 2, i + 1)
-			df.plot(kind = "pie", y = j, ax = ax, autopct = '%1.1f%%', legend = False, labels = df.index)
-			ax.set_title("Total: {0:.0f} {1:s}".format( (lambda: tot_gbs / 1024 if j == 0 else tot_events / 1e6)(), (lambda: "TB" if j == 0 else "million files")() ))
-			# if i < 2:
-			# 	ax.text(0, 1.5, "Data Transfer From {0:s} To {1:s}".format(re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)), size = "large", ha = "center")	
-			# else:
+		for j in ["Size", "Events"]:
+	# 		#ax = fig.add_subplot(2, 2, i + 1)
+	# 		#df.plot(kind = "pie", y = j, ax = ax, autopct = '%1.1f%%', legend = False, labels = df.index)
+	# 		#ax.set_title("Total: {0:.0f} {1:s}".format( (lambda: tot_gbs / 1024 if j == 0 else tot_events / 1e6)(), (lambda: "TB" if j == 0 else "million files")() ))
+	# 		# if i < 2:
+	# 		# 	ax.text(0, 1.5, "Data Transfer From {0:s} To {1:s}".format(re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)), size = "large", ha = "center")	
+	# 		# else:
+			p = Donut(df, label = "Domains", values = j, title = "Total: {0:.0f} {1:s}".format( (lambda: tot_gbs / 1024 if j == "Size" else tot_events / 1e6)(), (lambda: "TB" if j == "Size" else "million files")() ) )
 			if i >= 2:
-				ax.text(0, -1.5, "In {0:s}".format((lambda: "Size" if j == 0 else "Number of Files")()), size = "large", horizontalalignment = "center")	
-			if j == 0:
-				ax.set_ylabel((lambda: "Downloads" if i == 0 else "Uploads")(), size = "large")	
-			else:
-				ax.set_ylabel("")	
-			ax.axis('equal')
+				p.add_layout( Title(text = "In {0:s}".format((lambda: "Size" if j == "Size" else "Number of Files")()), align = "center" ), "below" )
+			if j == "Size":
+				p.add_layout( Title(text = (lambda: "Downloads" if i == 0 else "Uploads")(), align = "center"), "left" )
+	# 		else:
+	# 			ax.set_ylabel("")	
+	# 		ax.axis('equal')
 			i += 1
-	plt.suptitle("Data Transfer From {0:s} To {1:s}".format(re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)))	
-	plt.show()		
+			plots.append(p)
+	grid = gridplot(plots, ncols = 2, plot_width = 600, plot_height = 600)
+	output_file("fig4.html")
+	show(column(Div(text = "<h1><center>Data Transfer From {0:s} To {1:s}</center></h1>".format(re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)), width = 600), grid))		
+	# plt.suptitle("Data Transfer From {0:s} To {1:s}".format(re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)))	
+	# plt.show()		
 
 
 def fig5(conn, idx):
 	iprange = {("132.246.194.0", "132.246.194.24"):"CADC", ("132.246.195.0", "132.246.195.24"):"CADC", ("132.246.217.0", "132.246.217.24"):"CADC", ("132.246.0.0", "132.246.255.255"):"NRC+CADC", ("192.168.0.0", "192.168.255.255"):"CADC-Private", ("206.12.0.0", "206.12.255.255"):"CC"}
 	service = ["data_ws", "vospace_ws"]
 	method = ["GET", "PUT"]
-	fig = plt.figure()
+	#fig = plt.figure()
 	i = 0
+	plots = []
 	for m in method:
 		for j, s in enumerate(service):
 			events = []
@@ -389,28 +418,28 @@ def fig5(conn, idx):
 			df["NRC"] = df["NRC+CADC"] - df["CADC"]
 			df["CADC"] = df["CADC"] + df["CADC-Private"]
 			df["Others"] = pd.DataFrame([tot_events])[0] - df["CADC"] - df["NRC"] - df["CC"]
-			df = df[["CADC","NRC","CC", "Others"]].T
+			df = df[["CADC","NRC","CC", "Others"]].T.reset_index()
 			#print(df) 
 
-			ax = fig.add_subplot(2, 2, i + 1)
-			df.plot(kind = "pie", y = 0, ax = ax, autopct = '%1.1f%%', legend = False, labels = df.index, fontsize = "small")
-			if j == 0:
-				ax.set_ylabel( (lambda: "Downloads" if i == 0 else "Uploads")() )
-			else:
-				ax.set_ylabel("")
-			if i >= 2:
-				ax.text(0, -1.2, (lambda: "data_ws" if j == 0 else "vospace_ws")(), ha = "center", size = "large")
-			ax.set_title("Total Events: {}".format(tot_events))		
-			ax.axis('equal')
-			i += 1
-	plt.suptitle("From {0:s} To {1:s}".format(re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)))
-	plt.tight_layout()	
-	plt.show()	
+	# 		ax = fig.add_subplot(2, 2, i + 1)
+	# 		df.plot(kind = "pie", y = 0, ax = ax, autopct = '%1.1f%%', legend = False, labels = df.index, fontsize = "small")
+	# 		if j == 0:
+	# 			ax.set_ylabel( (lambda: "Downloads" if i == 0 else "Uploads")() )
+	# 		else:
+	# 			ax.set_ylabel("")
+	# 		if i >= 2:
+	# 			ax.text(0, -1.2, (lambda: "data_ws" if j == 0 else "vospace_ws")(), ha = "center", size = "large")
+	# 		ax.set_title("Total Events: {}".format(tot_events))		
+	# 		ax.axis('equal')
+	# 		i += 1
+	# plt.suptitle("From {0:s} To {1:s}".format(re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)))
+	# plt.tight_layout()	
+	# plt.show()	
 
 if __name__ == "__main__":
 	conn = Conn().conn
-	# fig1(conn, "tomcat-svc-*")
-	# fig2(conn, "tomcat-svc-*")
+	# fig1(conn, "delivery_history-*")
+	# fig2(conn, "delivery_history-*")
 	# fig3(conn, "tomcat-svc-*")
 	# fig4(conn, "delivery_history-*")
 	fig5(conn, "delivery_history-*")
