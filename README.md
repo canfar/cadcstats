@@ -8,9 +8,9 @@ Tools/scripts used to collect history data from CADC services.
   * ```condor-es.conf```: The configuration file for Logstash.
   * ```condor.py```: Analytics plotting.
 
-2.proc 
-  * ```proc_parser.py```: Reads from proc gz logs and parse useful lines into "contracted" JSON / csv format.
-  * ```proc-es.conf```: The corresponding config for Logstash.
+2. tomcat 
+  * ```tomcat_parser.py```: Reads from proc gz logs and parse useful lines into "contracted" JSON / csv format.
+  * ```tomcat-es.conf```: The corresponding config for Logstash.
 
 3. OpenStack
   * ```openstack-es.conf```: The config for Logstash.
