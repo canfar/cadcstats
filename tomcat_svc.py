@@ -16,14 +16,16 @@ from bokeh.layouts import gridplot, column, row
 
 odin = 'http://odin.cadc.dao.nrc.ca:9200'
 
-class Conn():
+class Init():
 	def __init__(self, url = None, timeout = 120):
+		self.timeout = timeout
 		if not url:
-			url = odin
-		if not requests.get(url):
+			self.url = odin
+		if not requests.get(self.url):
 			print("Connection incorrect!")
 			exit(0)
-		self.conn = Elasticsearch(url, timeout = timeout)
+	def connect(self):
+		return Elasticsearch(self.url, timeout = self.timeout)
 
 def ip2dom(ip):
 	try: 
@@ -142,8 +144,8 @@ def fig2(conn, idx):
 	show(column(Div(text = "<h1>BIG ASS TITLE</h1>"), grid))			
 
 def fig3(conn, idx):
-	fig = plt.figure(figsize = (10, 5))
-	ax = fig.add_subplot(111)
+	#fig = plt.figure(figsize = (10, 5))
+	#ax = fig.add_subplot(111)
 	query = {
 			"query" : {
 		        "bool" : {
@@ -389,7 +391,7 @@ def fig5(conn, idx):
 	show(column(Div(text = "<h1>From {0:s} To {1:s}</h1>".format(re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)), width = 600), grid))	
 
 if __name__ == "__main__":
-	conn = Conn().conn
+	conn = Init().connect()
 	# fig1(conn, "delivery_history-*")
 	# fig2(conn, "delivery_history-*")
 	fig3(conn, "delivery_history-*")
