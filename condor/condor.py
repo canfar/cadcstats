@@ -22,6 +22,8 @@ class Init():
 		self.timeout = timeout
 		if not url:
 			self.url = es
+		else:
+			self.url = url	
 		if not requests.get(self.url):
 			print("Connection incorrect!")
 			exit(0)

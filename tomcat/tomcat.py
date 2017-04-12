@@ -21,6 +21,8 @@ class Init():
 		self.timeout = timeout
 		if not url:
 			self.url = odin
+		else:
+			self.url = url	
 		if not requests.get(self.url):
 			print("Connection incorrect!")
 			exit(0)
@@ -99,7 +101,6 @@ def fig2(conn, idx):
 	clr = ["blue", "purple", "green"]
 	plots = []
 	for j, s in enumerate(service):
-		ax = fig.add_subplot(3, 1, j + 1)
 		for i, m in enumerate(method):
 			query = {
 					"query" : {
@@ -391,9 +392,9 @@ def fig5(conn, idx):
 	show(column(Div(text = "<h1>From {0:s} To {1:s}</h1>".format(re.match("(\d{4}-\d{2}-\d{2})T", start).group(1), re.match("(\d{4}-\d{2}-\d{2})T", end).group(1)), width = 600), grid))	
 
 if __name__ == "__main__":
-	conn = Init().connect()
-	# fig1(conn, "delivery_history-*")
-	# fig2(conn, "delivery_history-*")
-	fig3(conn, "delivery_history-*")
-	# fig4(conn, "delivery_history-*")
-	# fig5(conn, "delivery_history-*")
+	conn = Init(timeout = 300).connect()
+	#fig1(conn, "delivery_history-*")
+	#fig2(conn, "delivery_history-*")
+	#fig3(conn, "delivery_history-*")
+	fig4(conn, "delivery_history-*")
+	#fig5(conn, "delivery_history-*")
