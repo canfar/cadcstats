@@ -46,7 +46,7 @@ def fig1(conn):
 			"aggs" : {
 				"per_proj" : {
 					"terms" : {
-			    		"field" : "{}.keyword".format( (lambda: "project" if idx == "logs-openstack" else "Project")() ),
+			    		"field" : "{}.keyword".format("project" if idx == "logs-openstack" else "Project"),
 			    		"size" : 100
 					},
 					"aggs" : {
@@ -337,7 +337,7 @@ def fig4(idx, conn):
 
 if __name__ == "__main__":
 	conn = Init(timeout = 300).connect()
-	#fig1(conn)
+	fig1(conn)
 	#fig2("logs-openstack", conn)
 	#fig3(conn)
-	fig4("logs-openstack", conn)
+	#fig4("logs-openstack", conn)

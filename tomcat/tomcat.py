@@ -308,11 +308,11 @@ def fig4(conn, idx):
 		df.columns = ["Domains", "Size", "Events"]
 
 		for j in ["Size", "Events"]:
-			p = Donut(df, label = "Domains", values = j, title = "Total: {0:.0f} {1:s}".format( (lambda: tot_gbs / 1024 if j == "Size" else tot_events / 1e6)(), (lambda: "TB" if j == "Size" else "million files")() ) )
+			p = Donut(df, label = "Domains", values = j, title = "Total: {0:.0f} {1:s}".format(tot_gbs / 1024 if j == "Size" else tot_events / 1e6, "TB" if j == "Size" else "million files") )
 			if i >= 2:
-				p.add_layout( Title(text = "In {0:s}".format((lambda: "Size" if j == "Size" else "Number of Files")()), align = "center" ), "below" )
+				p.add_layout( Title(text = "In {0:s}".format("Size" if j == "Size" else "Number of Files"), align = "center" ), "below" )
 			if j == "Size":
-				p.add_layout( Title(text = (lambda: "Downloads" if i == 0 else "Uploads")(), align = "center"), "left" )
+				p.add_layout( Title(text = "Downloads" if i == 0 else "Uploads", align = "center"), "left" )
 			i += 1
 			plots.append(p)
 	grid = gridplot(plots, ncols = 2, plot_width = 600, plot_height = 600)
@@ -382,9 +382,9 @@ def fig5(conn, idx):
 
 			p = Donut(df, label = "Domains", values = "Events", title = "Total Events: {}".format(tot_events) )
 			if i >= 2:
-				p.add_layout( Title(text = (lambda: "data_ws" if j == 0 else "vospace_ws")(), align = "center" ), "below" )
+				p.add_layout( Title(text = "data_ws" if j == 0 else "vospace_ws", align = "center" ), "below" )
 			if j == 0:
-				p.add_layout( Title(text = (lambda: "Downloads" if i == 0 else "Uploads")(), align = "center"), "left" )
+				p.add_layout( Title(text = "Downloads" if i == 0 else "Uploads", align = "center"), "left" )
 			i += 1
 			plots.append(p)
 	grid = gridplot(plots, ncols = 2, plot_width = 600, plot_height = 600)

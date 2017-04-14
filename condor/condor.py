@@ -154,7 +154,7 @@ def fig2(idx, conn):
 	x = np.array([_ for _ in range(len(df))])
 
 	for i, col in enumerate(df.columns):
-		p.vbar(x = x + i/5 - 0.10, top = np.sqrt(df[col]), bottom = 0, width = 0.2, color = clr[i], legend = (lambda: "User" if col == "jobdur_ranges" else "Machine")())
+		p.vbar(x = x + i/5 - 0.10, top = np.sqrt(df[col]), bottom = 0, width = 0.2, color = clr[i], legend = "User" if col == "jobdur_ranges" else "Machine")
 
 	d = dict(zip(x, df.index))
 	p.xaxis[0].ticker = FixedTicker(ticks = x)
@@ -223,7 +223,7 @@ def fig3(idx, conn):
 	x = np.array([_ for _ in range(len(df))])
 
 	for i, col in enumerate(df.columns):
-		p.vbar(x = x + i/5 - 0.10, top = np.sqrt(df[col]), bottom = 0, width = 0.2, color = clr[i], legend = (lambda: "User" if col == "jobdur_med" else "Machine")())
+		p.vbar(x = x + i/5 - 0.10, top = np.sqrt(df[col]), bottom = 0, width = 0.2, color = clr[i], legend = "User" if col == "jobdur_med" else "Machine")
 
 	d = dict(zip(x, df.index))
 	p.xaxis[0].ticker = FixedTicker(ticks = x)
@@ -403,7 +403,7 @@ def fig6(idx, conn):
 
 	p = figure(plot_width = 1200, toolbar_location = "above")
 	for i, c in enumerate(["ramspec", "avg_ramreq"]):
-		p.hbar(y = y - w * (i - 1 / 2) , right = df[c] / 1024, left = 0, height = w, color = clr[i], legend = (lambda: "Requested Memory" if i == 1 else "VM Memory")() )
+		p.hbar(y = y - w * (i - 1 / 2) , right = df[c] / 1024, left = 0, height = w, color = clr[i], legend = "Requested Memory" if i == 1 else "VM Memory")
 	p.xaxis[0].axis_label = "GB"
 	d = dict(zip(y, df.index))
 	p.yaxis[0].ticker = FixedTicker(ticks = y)
@@ -422,7 +422,7 @@ def fig6(idx, conn):
 
 	p2 = figure(plot_width = 1200, toolbar_location = "above")
 	for i, c in enumerate(["dskspec", "avg_dskreq"]):
-		p2.hbar(y = y - w * (i - 1 / 2) , right = df[c], left = 0, height = w, color = clr[i], legend = (lambda: "Requested Disk Size" if i == 1 else "VM Disk Size")() )
+		p2.hbar(y = y - w * (i - 1 / 2) , right = df[c], left = 0, height = w, color = clr[i], legend = "Requested Disk Size" if i == 1 else "VM Disk Size")
 	p2.xaxis[0].axis_label = "GB"
 	d = dict(zip(y, df.index))
 	p2.yaxis[0].ticker = FixedTicker(ticks = y)
@@ -643,7 +643,7 @@ def fig9(idx, conn):
 
 	p = figure(plot_width = 800, toolbar_location = "above")
 	for i, c in enumerate(["reqmem", "memusg"]):
-		p.hbar(y = y - w * (i - 1 / 2) , right = df[c], left = 0, height = w, color = clr[i], legend = (lambda: "Requested Memory" if i == 0 else "Memory Usage")() )
+		p.hbar(y = y - w * (i - 1 / 2) , right = df[c], left = 0, height = w, color = clr[i], legend = "Requested Memory" if i == 0 else "Memory Usage")
 	p.xaxis[0].axis_label = "GB"
 	d = dict(zip(y, df.index))
 	p.yaxis[0].ticker = FixedTicker(ticks = y)
