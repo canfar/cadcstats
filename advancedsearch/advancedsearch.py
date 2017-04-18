@@ -30,34 +30,38 @@ class Init():
 		return Elasticsearch(self.url, timeout = self.timeout)
 
 # usage of each field of advancedsearch
-def fig1(idx, conn):
-	tot = conn.search(idx, body = { "query" : { "match_all" : {}}})["hits"]["total"]
+def fig1(idx, conn, exclude = False):
+	if exclude:
+		query = {
+			"size" : 0,
+			"query" : {
+				"bool" : {
+					"must_not" : [
+						{ "range" : { "remoteip" : { "gte" : "206.12.0.0", "lte" : "206.12.255.255" } } },
+						{ "range" : { "remoteip" : { "gte" : "132.246.0.0", "lte" : "132.246.255.255" } } },
+						{ "range" : { "remoteip" : { "gte" : "192.168.0.0", "lte" : "192.168.255.255" } } },
+						{ "term" : { "clientdomain.keyword" : "hawaii.edu" } }
+					]
+				}
+			}
+		}
+	else:
+		query = { "size" : 0 }	
+	tot = conn.search(idx, body = query)["hits"]["total"]
 	begin = conn.search(idx, body = { "aggs" : { "start" : { "min" :{ "field" : "@timestamp"}}}})["aggregations"]["start"]["value_as_string"][:10]
 	end = conn.search(idx, body = { "aggs" : { "end" : { "max" :{ "field" : "@timestamp"}}}})["aggregations"]["end"]["value_as_string"][:10]
 	#print(tot)
 	df = pd.DataFrame([[tot]], index = ["tot"])
 	for f in fields:
-		if f == "data_release_date_public" or f =="target_upload":
-			query = {
-				"size" : 0,
-				"query" : {
-					"bool" : {
-						"must" : [
-							{ "term" : {f : "true"}}
-						]
-					}
-				}
-			}
+		if f == "data_release_date_public" or f =="target_upload":	
+			query["query"]["bool"]["must"] = [ { "term" : {f : "true"}} ]
 			df = df.append(pd.DataFrame([[ conn.search(idx, body = query)["hits"]["total"] ]], index = [f]))
 		elif f == "observation_intention":
-			query = {
-				"size" : 0,
-				"aggs": {
-					"obs_int": {
-						"terms": {
-							"field": "observation_intention.keyword",
-							"size": 10
-						}
+			query["aggs"] = {
+				"obs_int": {
+					"terms": {
+						"field": "observation_intention.keyword",
+						"size": 10
 					}
 				}
 			}
@@ -65,24 +69,22 @@ def fig1(idx, conn):
 				if _["key"] != "both":
 					df = df.append(pd.DataFrame([[ _["doc_count"] ]], index = [f + "_" + _["key"]]))
 		else:	
-			query = {
-				"size" : 0,
-				"query" : {
-					"exists" : {
-						"field" : f
-					}
-				}
-			}
+			query["query"]["bool"]["must"] = [ {"exists" : { "field" : f } } ]
 			df = df.append(pd.DataFrame([[ conn.search(idx, body = query)["hits"]["total"] ]], index = [f]))
-	print(df.sort_values(0))
-	print(begin, end)
+
 	df = df / tot
-	p = figure(width = 900, title = "Advanced Search: Usage of Each Field (from %s to %s)" % (begin, end))
+	ttl = "Advanced Search: Usage of Each Field (from %s to %s)" % (begin, end)
+	if exclude:
+		ttl += " excluding NRC/CADC/CC/Hawaii.edu Domain"
+	p = figure(width = 1200, title = ttl)
 	df = df.sort_values(0)
 	y = [ _ for _ in range(1, len(df))]
 	d = dict(zip(y, [_ for _ in df.index[:-1]]))
 	p.hbar(y = y, right = df[0][:-1], height = 0.5, left = 0)
-	p.xaxis.axis_label = ("Percentage (Total Number of Queries %i)" % tot)
+	xlab = "Percentage (Total Number of Queries %i)" % tot
+	if exclude:
+		xlab += " excluding NRC/CADC/CC/Hawaii.edu Domain"
+	p.xaxis.axis_label = xlab
 	p.yaxis.axis_label = "Fields"
 	p.yaxis[0].ticker = FixedTicker(ticks = y)
 	p.yaxis[0].formatter = FuncTickFormatter(code = """dic = """ + str(d) + """
@@ -92,7 +94,7 @@ def fig1(idx, conn):
 	show(p)
 
 #
-def fig2(idx, conn):
+def fig2(idx, conn, exclude = False):
 	query = {
 		"size" : 0,
 		"aggs" : {
@@ -106,6 +108,18 @@ def fig2(idx, conn):
 		}
 	}
 
+	if exclude:
+		query["query"] = {
+			"bool" : {
+				"must_not" : [
+					{ "range" : { "remoteip" : { "gte" : "206.12.0.0", "lte" : "206.12.255.255" } } },
+					{ "range" : { "remoteip" : { "gte" : "132.246.0.0", "lte" : "132.246.255.255" } } },
+					{ "range" : { "remoteip" : { "gte" : "192.168.0.0", "lte" : "192.168.255.255" } } },
+					{ "term" : { "clientdomain.keyword" : "hawaii.edu" } }
+				]
+			}
+		}
+
 	res = conn.search(index = idx, body = query)
 
 	df = pd.DataFrame()
@@ -113,8 +127,10 @@ def fig2(idx, conn):
 	for _ in res["aggregations"]["peryr"]["buckets"]:
 		df = df.append(pd.DataFrame([[_["doc_count"]]], index = [_["key_as_string"]], columns = ["events"]))
 
-	#print(df)
-	p1 = figure(width = 1200, title = "Advanced Search: Numer of Queries per Month")
+	ttl = "Advanced Search: Numer of Queries per Month"
+	if exclude:
+		ttl += " excluding NRC/CADC/CC/Hawaii.edu Domain"
+	p1 = figure(width = 1200, title = ttl)
 	x = [_ for _ in range(len(df))]
 	p1.vbar(x = x, top = df["events"], bottom = 0, width = 0.8)
 	d = dict(zip(x, df.index))
@@ -230,6 +246,186 @@ def fig5(idx, conn):
 
 	print(res["hits"]["total"] / len(res["aggregations"]["perday"]["buckets"]))
 
+def fig6(idx, conn):
+
+	begin = conn.search(idx, body = { "aggs" : { "start" : { "min" :{ "field" : "@timestamp"}}}})["aggregations"]["start"]["value_as_string"][:10]
+	end = conn.search(idx, body = { "aggs" : { "end" : { "max" :{ "field" : "@timestamp"}}}})["aggregations"]["end"]["value_as_string"][:10]
+
+	query = {
+		"size" : 0,
+		"query" : {
+			"bool" : {
+				"should" : [
+					{ "range" : { "remoteip" : { "gte" : "132.246.194.0", "lte" : "132.246.194.255" } } },
+					{ "range" : { "remoteip" : { "gte" : "132.246.195.0", "lte" : "132.246.195.255" } } }, 
+					{ "range" : { "remoteip" : { "gte" : "132.246.217.0", "lte" : "132.246.217.255" } } },
+					{ "range" : { "remoteip" : { "gte" : "192.168.0.0", "lte" : "192.168.255.255" } } } 
+				]
+			}
+		},
+		"aggs" : {
+			"top_ips" : {
+		        "terms" : {
+		        	"field" : "remoteip",
+		        	"size" : 4
+		        }
+		    } 
+	    }
+	}
+
+	res = conn.search(index = idx, body = query)
+
+	df = pd.DataFrame()
+
+	for _ in res["aggregations"]["top_ips"]["buckets"]:
+		df = df.append(pd.DataFrame([["CADC", _["key"], _["doc_count"]]], columns = ["domain", "ip", "events"]))
+	df = df.append(pd.DataFrame([["CADC", "rest", res["aggregations"]["top_ips"]["sum_other_doc_count"]]], columns = ["domain", "ip", "events"]))
+
+	query = {
+		"size" : 0,
+		"query" : {
+			"bool" : {
+				"must" : [
+					{ "range" : { "remoteip" : { "gte" : "206.12.0.0", "lte" : "206.12.255.255" } } }
+				]
+			}
+		},
+		"aggs" : {
+			"top_ips" : {
+		        "terms" : {
+		        	"field" : "remoteip",
+		        	"size" : 1
+		        }
+		    } 
+	    }
+	}
+
+	res = conn.search(index = idx, body = query)
+
+	for _ in res["aggregations"]["top_ips"]["buckets"]:
+		df = df.append(pd.DataFrame([["CC", _["key"], _["doc_count"]]], columns = ["domain", "ip", "events"]))
+	df = df.append(pd.DataFrame([["CC", "rest", res["aggregations"]["top_ips"]["sum_other_doc_count"]]], columns = ["domain", "ip", "events"]))
+
+	query = {
+		"size" : 0,
+		"query" : {
+			"bool" : {
+				"must" : [
+					{ "range" : { "remoteip" : { "gte" : "132.246.0.0", "lte" : "132.246.255.255" } } }
+				],
+				"must_not" : [
+					{ "range" : { "remoteip" : { "gte" : "132.246.194.0", "lte" : "132.246.194.255" } } },
+					{ "range" : { "remoteip" : { "gte" : "132.246.195.0", "lte" : "132.246.195.255" } } }, 
+					{ "range" : { "remoteip" : { "gte" : "132.246.217.0", "lte" : "132.246.217.255" } } },
+					{ "range" : { "remoteip" : { "gte" : "192.168.0.0", "lte" : "192.168.255.255" } } } 
+				]
+			}
+		},
+		"aggs" : {
+			"top_ips" : {
+		        "terms" : {
+		        	"field" : "remoteip",
+		        	"size" : 3
+		        }
+		    } 
+	    }
+	}
+
+	res = conn.search(index = idx, body = query)
+
+	for _ in res["aggregations"]["top_ips"]["buckets"]:
+		df = df.append(pd.DataFrame([["NRC w/o CADC", _["key"], _["doc_count"]]], columns = ["domain", "ip", "events"]))
+	df = df.append(pd.DataFrame([["NRC w/o CADC", "rest", res["aggregations"]["top_ips"]["sum_other_doc_count"]]], columns = ["domain", "ip", "events"]))
+
+	query = {
+		"size" : 0,
+		"query" : {
+			"bool" : {
+				"must_not" : [
+					{ "range" : { "remoteip" : { "gte" : "206.12.0.0", "lte" : "206.12.255.255" } } },
+					{ "range" : { "remoteip" : { "gte" : "132.246.0.0", "lte" : "132.246.255.255" } } },
+					{ "range" : { "remoteip" : { "gte" : "192.168.0.0", "lte" : "192.168.255.255" } } }
+				]
+			}
+		},
+		"aggs" : {
+			"top_ips" : {
+		        "terms" : {
+		        	"field" : "remoteip",
+		        	"size" : 4
+		        }
+		    } 
+	    }
+	}
+
+	res = conn.search(index = idx, body = query)
+
+	for _ in res["aggregations"]["top_ips"]["buckets"]:
+		df = df.append(pd.DataFrame([["Others", _["key"], _["doc_count"]]], columns = ["domain", "ip", "events"]))
+	df = df.append(pd.DataFrame([["Others", "rest", res["aggregations"]["top_ips"]["sum_other_doc_count"]]], columns = ["domain", "ip", "events"]))
+
+	p = Donut(df, label = ["domain", "ip"], values = "events", title = "Advanced Search: Queries Percentage Submitted by Domains (from %s to %s)" % (begin, end), plot_width = 800, plot_height = 800)
+
+	output_file("fig6.html")
+	show(p)
+
+def fig7(idx, conn, tgt):
+	begin = conn.search(idx, body = { "aggs" : { "start" : { "min" :{ "field" : "@timestamp"}}}})["aggregations"]["start"]["value_as_string"][:10]
+	end = conn.search(idx, body = { "aggs" : { "end" : { "max" :{ "field" : "@timestamp"}}}})["aggregations"]["end"]["value_as_string"][:10]
+
+	query = {
+		"size" : 0,
+		"query" : {
+			"bool" : {
+				"must_not" : [
+					{ "range" : { "remoteip" : { "gte" : "206.12.0.0", "lte" : "206.12.255.255" } } },
+					{ "range" : { "remoteip" : { "gte" : "132.246.0.0", "lte" : "132.246.255.255" } } },
+					{ "range" : { "remoteip" : { "gte" : "192.168.0.0", "lte" : "192.168.255.255" } } },
+					{ "term" : { "clientdomain.keyword" : "hawaii.edu" } }
+				]
+			}
+		},
+		"aggs" : {
+			"top_tgt" : {
+		        "terms" : {
+		        	"field" : "{}.keyword".format(tgt),
+		        	"size" : 8 if tgt == "clientdomain" else 18
+		        }
+		    } 
+	    }
+	}
+
+	res = conn.search(index = idx, body = query)
+
+	df = pd.DataFrame()
+
+	for _ in res["aggregations"]["top_tgt"]["buckets"]:
+		df = df.append(pd.DataFrame([[_["key"], _["doc_count"]]], columns = ["key", "events"]))
+	df = df.sort_values("events")
+	if tgt == "clientdomain":	
+		df = pd.DataFrame([["Others", res["aggregations"]["top_tgt"]["sum_other_doc_count"]]], columns = ["key", "events"]).append(df)
+
+	tot = res["hits"]["total"]
+
+	df["events"] = df["events"] / tot
+
+	if tgt == "collection":
+		ttl = 'Most Selected "Collection" for Non-NRC/CADC/CC/Hawaii.edu ({0:.2f}% Selected "Collection")'.format(100 * df["events"].sum())
+	else:
+		ttl = "Advanced Search: Number of Queries submitted by Non-NRC/CADC/CC/Hawaii.edu Domains (from %s to %s)" % (begin, end)	
+	p = figure(width = 900, title = ttl)
+	y = [ _ for _ in range(len(df))]
+	d = dict(zip(y, [_ for _ in df["key"]]))
+	p.hbar(y = y, right = df["events"], height = 0.8, left = 0)
+	p.xaxis.axis_label = "Percentage (Total Number of Queries Submitted by Non-NRC/CADC/CC/Hawaii.edu Domains: %i)" % tot
+	p.yaxis.axis_label = "Collections" if tgt == "collection" else "Domains"
+	p.yaxis[0].ticker = FixedTicker(ticks = y)
+	p.yaxis[0].formatter = FuncTickFormatter(code = """dic = """ + str(d) + """
+	     return dic[tick]""")
+	p.xaxis[0].formatter = NumeralTickFormatter(format = "0.%")
+
+	output_file("fig7.html")
+	show(p)
 
 if __name__ == "__main__":
 	conn = Init(timeout = 1000).connect()
@@ -237,5 +433,11 @@ if __name__ == "__main__":
 	#fig2("logs-advancedsearch", conn)
 	#fig3("logs-advancedsearch", conn)
 	#fig4("logs-advancedsearch", conn)
-	fig5("logs-advancedsearch", conn)
+	#fig5("logs-advancedsearch", conn)
+	#fig6("logs-advancedsearch", conn)
+	fig7("logs-advancedsearch", conn, "collection")
+	#fig7("logs-advancedsearch", conn, "clientdomain")
+	#fig8("logs-advancedsearch", conn)
+	#fig1("logs-advancedsearch", conn, exclude = True)
+	#fig2("logs-advancedsearch", conn, exclude = True)
 		
