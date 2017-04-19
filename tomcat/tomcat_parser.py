@@ -178,11 +178,11 @@ def parse(tom):
 					if r:
 						ua = r.group(1)	
 						tar = "\"userAgent\":\"" + ua + "\","
-					try:
-						tmp = ua_regex.sub(tar, tmp)
-					except sre_constants.error:
-						errout.write("{} sre_constants.error\n".format(i))
-						continue	
+						try:
+							tmp = ua_regex.sub(tar, tmp)
+						except sre_constants.error:
+							errout.write("{} sre_constants.error\n".format(i))
+							continue	
 					##
 					# ignore addMembers field, as the json is invalid
 					# i.e., "addedMembers":[ac_ws-inttest-testGroup-1416945206192]
