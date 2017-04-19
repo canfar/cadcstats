@@ -437,7 +437,6 @@ if __name__ == "__main__":
 	#fig6("logs-advancedsearch", conn)
 	fig7("logs-advancedsearch", conn, "collection")
 	#fig7("logs-advancedsearch", conn, "clientdomain")
-	#fig8("logs-advancedsearch", conn)
 	#fig1("logs-advancedsearch", conn, exclude = True)
 	#fig2("logs-advancedsearch", conn, exclude = True)
 		
