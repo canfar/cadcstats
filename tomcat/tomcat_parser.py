@@ -100,7 +100,7 @@ def parse(tom):
 			# drop RemoteEventLogger and LogEventsServlet according to John's config
 			# drop meetingsvc becoz we are not not interested
 			#
-			if re.search("RemoteEventLogger", line) or re.search("LogEventsServlet", line) or re.search("meetingsvc", line):
+			if re.search("RemoteEventLogger", line) or re.search("LogEventsServlet", line):
 				continue
 			##
 			# group(1): time
