@@ -35,8 +35,8 @@ class Init():
 		return Elasticsearch(self.url, timeout = self.timeout)
 
 def fig1(idx, conn, svc):
-	service = {"ssos" : ["ssos", "ssosclf.pl"], "dss" : ["dss", "dss_status.py"], "meeting": ["getMeetings.html", "meetingsvc"]}
-	ttl = {"ssos" : "Solar System Object Image Search", "dss" : "Digital Sky Survey System", "meeting" : "Meetings"}
+	service = {"ssos" : ["ssos", "ssosclf.pl"], "dss" : ["dss", "dss_status.py"], "meeting": ["getMeetings.html", "meetingsvc"], "yes" : ["YorkExtinctionSolver", "output.cgi"]}
+	ttl = {"ssos" : "Solar System Object Image Search", "dss" : "Digital Sky Survey System", "meeting" : "Meetings", "yes" : "York Extinction Solver"}
 	plts = [Div(text = "<h1>{}</h1>".format(ttl[svc]), width = 1000)]
 	for req in service[svc]:
 		df = pd.DataFrame()
@@ -112,5 +112,5 @@ def fig1(idx, conn, svc):
 	
 if __name__ == "__main__":
 	conn = Init().connect()
-	fig1("logs-apache", conn, "meeting")
+	fig1("logs-apache", conn, "yes")
 
