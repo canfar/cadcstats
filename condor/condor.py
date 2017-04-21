@@ -661,25 +661,249 @@ def fig9(idx, conn):
 	output_file("fig9.html")
 	show(column(Div(text = "<h1>Average Memory Usage & Requested Memory for Batch VMs</h1>", width = 1200), p))
 
-def test():
+def fig10(conn):
+	df = pd.DataFrame()
+	for idx in ["logs-tomcat", "logs-condor"]:
+		query = {
+			"size" : 0,
+			"query" : {
+				"bool" : {
+					"must" : [
+						{ "term" : { "service" : "proc_ws" } },
+						{ "term" : { "method" : "post" } }
+					]
+				}
+			},
+			"aggs" : {
+				"permo" : {
+					"date_histogram" : {
+		                "field" : "@timestamp",
+		                "interval" : "month",
+		                "format" : "yyyy-MM" 
+		            },
+		            "aggs" : {
+						"unique_user" : {
+							"cardinality" : {
+								"field": "user.keyword"
+							}
+						}	
+					}
+				}	
+			}		
+		}
+
+		if idx == "logs-condor":
+			query["query"] = { "match_all" : {} }
+			query["aggs"]["permo"]["aggs"]["unique_user"]["cardinality"]["field"] = "Owner.keyword"
+
+		res = conn.search(index = idx, body = query)
+
+		for _ in res["aggregations"]["permo"]["buckets"]:
+			df = df.append(pd.DataFrame([[_["unique_user"]["value"]]], columns = [idx], index = [_["key_as_string"]]))
+	
+	df = df.groupby(df.index).sum().dropna()
+	df.columns = ["HTCondor", "Web Service"]
+
+	x = np.array([_ for _ in range(len(df))])
+	p = figure(plot_width = 800, toolbar_location = "above")
+	p.vbar(x = x - 0.2, top = df["HTCondor"], bottom = 0, width = 0.4, legend = "HTCondor", color = "purple")
+	p.vbar(x = x + 0.2, top = df["Web Service"], bottom = 0, width = 0.4, legend = "Web Service", color = "blue")
+	p.legend.location = "top_right"
+	d = dict(zip(x, df.index))
+	p.xaxis[0].ticker = FixedTicker(ticks = x)
+	p.xaxis[0].formatter = FuncTickFormatter(code = """dic = """ + str(d) + """
+    if (tick in dic) {
+        return dic[tick]
+    }
+    else {
+        return ''
+    }""")
+	p.xaxis.major_label_orientation = np.pi / 4
+	p.title.text = "Users Submitting Jobs by Web Service and Directly by HTCondor"
+	output_file("fig10.html")
+	show(p)	
+
+def fig11(conn):
+	df = pd.DataFrame()
+	for m in ["post", "get"]:
+		query = {
+			"size" : 0,
+			"query" : {
+				"bool" : {
+					"must" : [
+						{ "term" : { "service" : "proc_ws" } },
+						{ "term" : { "method" : m } }
+					]
+				}
+			},
+			"aggs" : {
+				"permo" : {
+					"date_histogram" : {
+		                "field" : "@timestamp",
+		                "interval" : "month",
+		                "format" : "yyyy-MM" 
+		            }
+				}	
+			}		
+		}
+
+		res = conn.search(index = "logs-tomcat", body = query)
+
+		for _ in res["aggregations"]["permo"]["buckets"]:
+			df = df.append(pd.DataFrame([[_["doc_count"]]], columns = [m], index = [_["key_as_string"]]))
+	
+	df = df.groupby(df.index).sum().dropna()
+	df.columns = ["Job Submission", "Job Status"]
+
+	x = np.array([_ for _ in range(len(df))])
+	p = figure(plot_width = 800, toolbar_location = "above")
+	p.vbar(x = x - 0.2, top = df["Job Submission"], bottom = 0, width = 0.4, legend = "Job Submission", color = "purple")
+	p.vbar(x = x + 0.2, top = df["Job Status"], bottom = 0, width = 0.4, legend = "Job Status", color = "blue")
+	p.legend.location = "top_right"
+	d = dict(zip(x, df.index))
+	p.xaxis[0].ticker = FixedTicker(ticks = x)
+	p.xaxis[0].formatter = FuncTickFormatter(code = """dic = """ + str(d) + """
+    if (tick in dic) {
+        return dic[tick]
+    }
+    else {
+        return ''
+    }""")
+	p.xaxis.major_label_orientation = np.pi / 4
+	p.title.text = "Requests for Job Queue Status and Job Submission"
+	output_file("fig11.html")
+	show(p)	
+
+def fig12(conn):
+	df = pd.DataFrame()
+	for m in ["post", "get"]:
+		query = {
+			"size" : 0,
+			"query" : {
+				"bool" : {
+					"must" : [
+						{ "term" : { "service" : "proc_ws" } },
+						{ "term" : { "method" : m } }
+					]
+				}
+			},
+			"aggs" : {
+				"dur_hist" : {
+		            "histogram" : {
+		                "field" : "time",
+		                "interval" : 100,
+		                "extended_bounds" : {
+		                    "min" : 0,
+		                    "max" : 40000
+		                }
+		            }
+		        }	
+			}		
+		}
+
+		res = conn.search(index = "logs-tomcat", body = query)
+
+		for _ in res["aggregations"]["dur_hist"]["buckets"]:
+			df = df.append(pd.DataFrame([[_["doc_count"]]], columns = [m], index = [_["key"]]))
+	
+	df = df.groupby(df.index).sum().dropna()
+	df.columns = ["Job Submission", "Job Status"]
+
+	x = np.array([_ for _ in range(len(df))])
+	p = figure(plot_width = 1200, toolbar_location = "above", y_axis_type = "log")
+	p.vbar(x = x - 0.2, top = df["Job Submission"], bottom = 0, width = 0.4, legend = "Job Submission", color = "purple")
+	p.vbar(x = x + 0.2, top = df["Job Status"], bottom = 0, width = 0.4, legend = "Job Status", color = "blue")
+	p.legend.location = "top_right"
+	p.title.text = "Web Service Requests for Job Status and Job Submission"
+	output_file("fig12.html")
+	show(p)
+
+def fig13(conn):
+	df = pd.DataFrame()
+
 	query = {
+		"size" : 0,
 		"query" : {
-			"match_phrase":{
-            	"path" : "/mnt/tmp/new"
-        	}
+			"bool" : {
+				"must" : [
+					{ "term" : { "service" : "proc_ws" } },
+					{ "term" : { "method" : "post" } }
+				],
+				"must_not" : { "exists" : { "field" : "message" } }
+			}
 		},
 		"aggs" : {
-			"unique_path" : {
-				"cardinality" : {
-					"field": "path.keyword"
-				}
+			"permo" : {
+				"date_histogram" : {
+	                "field" : "@timestamp",
+	                "interval" : "month",
+	                "format" : "yyyy-MM" 
+	            }
 			}	
 		}		
 	}
-	conn = Init(timeout = 300).connect()
-	res = conn.search(index = "logs-tomcat", body = query)
-	print(res["aggregations"]['unique_path']['value'])
+
+	res = conn.search(index = "logs-tomcat", body = query)	
+
+	for _ in res["aggregations"]["permo"]["buckets"]:
+		df = df.append(pd.DataFrame([[_["doc_count"]]], columns = ["proc_ws"], index = [_["key_as_string"]]))	
+
+	query = {
+		"size" : 0,
+		"query" : {
+			"bool" : {
+				"must" : [
+					{ "range" : { "ClusterId" : { "gte" : 0 } } },
+					{ "range" : { "ProcId" : { "gte" : 0 } } }
+				]
+			}
+		},
+		"aggs" : {
+			"permo" : {
+				"date_histogram" : {
+	                "field" : "@timestamp",
+	                "interval" : "month",
+	                "format" : "yyyy-MM" 
+	            },
+	            "aggs" : {
+	            	"uniq_clusterid" : {
+	            		"cardinality" : {
+	            			"field" : "ClusterId"
+	            		}
+	            	}
+	            }
+			}	
+		}		
+	}	
+
+	res = conn.search(index = "logs-condor", body = query)
+
+	for _ in res["aggregations"]["permo"]["buckets"]:
+		df = df.append(pd.DataFrame([[_["uniq_clusterid"]["value"]]], columns = ["condor"], index = [_["key_as_string"]]))	
+
+	df = df.groupby(df.index).sum()
 	
+	df["ratio"]	= df["proc_ws"] / df["condor"]
+
+	df = df.dropna(how = "any")
+
+	p1 = figure(width = 800, title = "Average Ratio of Web Service submissions over HTCondor Submissions")
+	x = [_ for _ in range(len(df))]
+	p1.vbar(x = x, top = df["ratio"], bottom = 0, width = 0.8)
+	d = dict(zip(x, df.index))
+	p1.xaxis[0].ticker = FixedTicker(ticks = x)
+	p1.xaxis[0].formatter = FuncTickFormatter(code = """dic = """ + str(d) + """
+	    if (tick in dic) {
+	        return dic[tick]
+	    }
+	    else {
+	        return ''
+	    }""")
+	p1.yaxis[0].axis_label = "Ratio"
+	p1.xaxis.major_label_orientation = np.pi / 4
+	output_file("fig13.html")
+	show(p1)
+
 if __name__ == "__main__":
 	conn = Init(timeout = 300).connect()
 	#fig1("logs-condor", conn)	
@@ -690,5 +914,9 @@ if __name__ == "__main__":
 	#fig6("logs-condor", conn)	
 	#fig7("logs-condor", conn)
 	#fig8("logs-condor", conn)
-	fig9("logs-condor", conn)
+	#fig9("logs-condor", conn)
+	#fig10(conn)
+	#fig11(conn)
+	#fig12(conn)
+	fig13(conn)
 	#test()
