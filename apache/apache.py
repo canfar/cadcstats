@@ -1,15 +1,10 @@
 #
 from elasticsearch import Elasticsearch, TransportError
 from elasticsearch.helpers import scan
-from elasticsearch_xpack import XPackClient
 #
 import requests
 import pandas as pd
 import numpy as np
-import re
-import json
-import time
-from ipaddress import IPv4Address as ipv4, AddressValueError
 #
 from bokeh.plotting import figure, output_file, show, save
 from bokeh.models import FuncTickFormatter, FixedTicker, NumeralTickFormatter, Div, Title, LinearAxis, Range1d
@@ -38,9 +33,11 @@ def fig1(idx, conn, svc):
 	service = {"ssos" : ["ssos", "ssosclf.pl"], "dss" : ["dss", "dss_status.py"], "meeting": ["getMeetings.html", "meetingsvc"], "yes" : ["YorkExtinctionSolver", "output.cgi"]}
 	ttl = {"ssos" : "Solar System Object Image Search", "dss" : "Digital Sky Survey System", "meeting" : "Meetings", "yes" : "York Extinction Solver"}
 	plts = [Div(text = "<h1>{}</h1>".format(ttl[svc]), width = 1000)]
+
 	for req in service[svc]:
 		df = pd.DataFrame()
 		df2 = pd.DataFrame()
+		
 		for dom in ["internal", "external"]:
 			query = {
 				"size" : 0,
@@ -68,6 +65,7 @@ def fig1(idx, conn, svc):
 					}
 				}
 			}
+
 			if svc == "meeting" and req != service[svc][0] :
 				query["query"]["bool"].setdefault("must", []).append({ "match" : { "referrer" : "editMeetings.html" } })
 			if dom == "internal":
@@ -84,8 +82,12 @@ def fig1(idx, conn, svc):
 					{ "term" : { "geoip.ip" : "206.12.0.0/16"}},
 					{ "term" : { "geoip.ip" : "192.168.0.0/16"}}
 				]
-				
-			res = conn.search(index = idx, body = query)
+
+			try:
+				res = conn.search(index = idx, body = query)
+			except TransportError as e:
+				print(e.info)
+				raise
 
 			for _ in res["aggregations"]["peryr"]["buckets"]:
 			 	df = df.append(pd.DataFrame([[_["doc_count"]]], columns = [dom], index = [_["key_as_string"]]))
