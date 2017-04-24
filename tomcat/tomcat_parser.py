@@ -146,7 +146,7 @@ def parse(tom):
 						#
 						t = re.search("\.{10,}", r.group(1))
 						if t:
-							print("** find lots of '.' in %s" % log)
+							print("** find lots of '.' in %s" % tom.log)
 							msg = re.sub("\.{10,}", " ", r.group(1))
 						else:
 							msg = r.group(1)	
