@@ -21,6 +21,7 @@
 
 6. svc_plots:
   * A python package with all the subroutines to generate various plots. The proper name wrapper of each subroutine is within ```svc_plots.plots```. Please see the Jupyter notebook for each services for details.
+  *  ```tomcat_odin.py``` is not included in ```svc_plots.plots```. These plotting subroutines can only use ```odin.cadc.dao.nrc.ca``` instead of ```elk.canfar.net```.
 
 7. ```*.ipynbs```:
   * Jupyter notebooks that used to host all the services plots.
