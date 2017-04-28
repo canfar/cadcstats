@@ -1,5 +1,3 @@
-#!/Users/will/anaconda3/bin/python
-
 from elasticsearch import Elasticsearch, TransportError
 from elasticsearch.helpers import scan
 import requests

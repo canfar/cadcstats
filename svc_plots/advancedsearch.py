@@ -30,16 +30,16 @@ class Init():
 		return Elasticsearch(self.url, timeout = self.timeout)
 
 # usage of each field of advancedsearch
-def fig1(idx, conn, exclude = False):
+def fig1(conn, idx, exclude = False):
 	if exclude:
 		query = {
 			"size" : 0,
 			"query" : {
 				"bool" : {
 					"must_not" : [
-						{ "range" : { "remoteip" : { "gte" : "206.12.0.0", "lte" : "206.12.255.255" } } },
-						{ "range" : { "remoteip" : { "gte" : "132.246.0.0", "lte" : "132.246.255.255" } } },
-						{ "range" : { "remoteip" : { "gte" : "192.168.0.0", "lte" : "192.168.255.255" } } },
+						{ "term" : { "remoteip" : "132.246.0.0/16"}},
+						{ "term" : { "remoteip" : "206.12.0.0/16"}},
+						{ "term" : { "remoteip" : "192.168.0.0/16"}},
 						{ "term" : { "clientdomain.keyword" : "hawaii.edu" } }
 					]
 				}
@@ -47,17 +47,28 @@ def fig1(idx, conn, exclude = False):
 		}
 	else:
 		query = { "size" : 0 }	
+
 	tot = conn.search(idx, body = query)["hits"]["total"]
 	begin = conn.search(idx, body = { "aggs" : { "start" : { "min" :{ "field" : "@timestamp"}}}})["aggregations"]["start"]["value_as_string"][:10]
 	end = conn.search(idx, body = { "aggs" : { "end" : { "max" :{ "field" : "@timestamp"}}}})["aggregations"]["end"]["value_as_string"][:10]
-	#print(tot)
+
 	df = pd.DataFrame([[tot]], index = ["tot"])
+
 	for f in fields:
-		if f == "data_release_date_public" or f =="target_upload":	
-			query["query"]["bool"]["must"] = [ { "term" : {f : "true"}} ]
-			df = df.append(pd.DataFrame([[ conn.search(idx, body = query)["hits"]["total"] ]], index = [f]))
+		if f == "data_release_date_public" or f == "target_upload":
+			q = query.copy()	
+			if exclude:
+				q["query"]["bool"]["must"] = [ { "term" : {f : "true"}} ]
+			else:
+				q["query"] = {
+					"bool" : {
+						"must" : [ { "term" : {f : "true"}} ]
+					}
+				} 
+			df = df.append(pd.DataFrame([[ conn.search(idx, body = q)["hits"]["total"] ]], index = [f]))
 		elif f == "observation_intention":
-			query["aggs"] = {
+			q = query.copy()
+			q["aggs"] = {
 				"obs_int": {
 					"terms": {
 						"field": "observation_intention.keyword",
@@ -65,12 +76,20 @@ def fig1(idx, conn, exclude = False):
 					}
 				}
 			}
-			for _ in conn.search(idx, body = query)["aggregations"]["obs_int"]["buckets"]:
+			for _ in conn.search(idx, body = q)["aggregations"]["obs_int"]["buckets"]:
 				if _["key"] != "both":
 					df = df.append(pd.DataFrame([[ _["doc_count"] ]], index = [f + "_" + _["key"]]))
-		else:	
-			query["query"]["bool"]["must"] = [ {"exists" : { "field" : f } } ]
-			df = df.append(pd.DataFrame([[ conn.search(idx, body = query)["hits"]["total"] ]], index = [f]))
+		else:
+			q = query.copy()
+			if exclude:
+				q["query"]["bool"]["must"] = [ {"exists" : { "field" : f } } ]
+			else:	
+				q["query"] = {
+					"bool" : {
+						"must" : [ {"exists" : { "field" : f } } ]
+					}
+				} 
+			df = df.append(pd.DataFrame([[ conn.search(idx, body = q)["hits"]["total"] ]], index = [f]))	
 
 	df = df / tot
 	ttl = "Advanced Search: Usage of Each Field (from %s to %s)" % (begin, end)
@@ -90,11 +109,11 @@ def fig1(idx, conn, exclude = False):
 	p.yaxis[0].formatter = FuncTickFormatter(code = """dic = """ + str(d) + """
 	     return dic[tick]""")
 	p.xaxis[0].formatter = NumeralTickFormatter(format = "0.%")
-	output_file("fig1.html")
-	show(p)
+
+	return(p)
 
 #
-def fig2(idx, conn, exclude = False):
+def fig2(conn, idx, exclude = False):
 	query = {
 		"size" : 0,
 		"aggs" : {
@@ -118,7 +137,7 @@ def fig2(idx, conn, exclude = False):
 					{ "term" : { "clientdomain.keyword" : "hawaii.edu" } }
 				]
 			}
-		}
+		}		
 
 	res = conn.search(index = idx, body = query)
 
@@ -134,8 +153,6 @@ def fig2(idx, conn, exclude = False):
 	x = [_ for _ in range(len(df))]
 	p1.vbar(x = x, top = df["events"], bottom = 0, width = 0.8)
 	d = dict(zip(x, df.index))
-	# newx = x[0::3]
-	# newd = {_:d[_] for _ in newx}
 	p1.xaxis[0].ticker = FixedTicker(ticks = x)
 	p1.xaxis[0].formatter = FuncTickFormatter(code = """dic = """ + str(d) + """
 	    if (tick in dic) {
@@ -146,10 +163,10 @@ def fig2(idx, conn, exclude = False):
 	    }""")
 	p1.yaxis[0].axis_label = "Number of Queries"
 	p1.xaxis.major_label_orientation = np.pi / 4
-	output_file("fig2.html")
-	show(p1)
 
-def fig3(idx, conn):
+	return(p1)
+
+def fig3(conn, idx):
 	tot = conn.search(idx, body = { "query" : { "match_all" : {}}})["hits"]["total"]
 	begin = conn.search(idx, body = { "aggs" : { "start" : { "min" :{ "field" : "@timestamp"}}}})["aggregations"]["start"]["value_as_string"][:10]
 	end = conn.search(idx, body = { "aggs" : { "end" : { "max" :{ "field" : "@timestamp"}}}})["aggregations"]["end"]["value_as_string"][:10]
@@ -185,10 +202,10 @@ def fig3(idx, conn):
 	p2.yaxis[0].formatter = FuncTickFormatter(code = """dic = """ + str(d) + """
 	     return dic[tick]""")
 	p2.xaxis[0].formatter = NumeralTickFormatter(format = "0.%")
-	output_file("fig3.html")
-	show(p2)
 
-def fig4(idx, conn):
+	return(p2)
+
+def fig4(conn, idx):
 	query = {
 		"query" : {
 			"bool" : {
@@ -226,10 +243,10 @@ def fig4(idx, conn):
 	p2.yaxis[0].ticker = FixedTicker(ticks = y)
 	p2.yaxis[0].formatter = FuncTickFormatter(code = """dic = """ + str(d) + """
 	     return dic[tick]""")
-	output_file("fig4.html")
-	show(p2)
 
-def fig5(idx, conn):
+	return(p2)
+
+def fig5(conn, idx):
 	query = {
 		"size" : 0,
 		"aggs" : {
@@ -244,9 +261,9 @@ def fig5(idx, conn):
 
 	res = conn.search(index = idx, body = query)
 
-	print(res["hits"]["total"] / len(res["aggregations"]["perday"]["buckets"]))
+	print("Average query per day : {}".format(res["hits"]["total"] / len(res["aggregations"]["perday"]["buckets"])))
 
-def fig6(idx, conn):
+def fig6(conn, idx):
 
 	begin = conn.search(idx, body = { "aggs" : { "start" : { "min" :{ "field" : "@timestamp"}}}})["aggregations"]["start"]["value_as_string"][:10]
 	end = conn.search(idx, body = { "aggs" : { "end" : { "max" :{ "field" : "@timestamp"}}}})["aggregations"]["end"]["value_as_string"][:10]
@@ -366,10 +383,9 @@ def fig6(idx, conn):
 
 	p = Donut(df, label = ["domain", "ip"], values = "events", title = "Advanced Search: Queries Percentage Submitted by Domains (from %s to %s)" % (begin, end), plot_width = 800, plot_height = 800)
 
-	output_file("fig6.html")
-	show(p)
+	return(p)
 
-def fig7(idx, conn, tgt):
+def fig7(conn, idx, tgt):
 	begin = conn.search(idx, body = { "aggs" : { "start" : { "min" :{ "field" : "@timestamp"}}}})["aggregations"]["start"]["value_as_string"][:10]
 	end = conn.search(idx, body = { "aggs" : { "end" : { "max" :{ "field" : "@timestamp"}}}})["aggregations"]["end"]["value_as_string"][:10]
 
@@ -424,8 +440,7 @@ def fig7(idx, conn, tgt):
 	     return dic[tick]""")
 	p.xaxis[0].formatter = NumeralTickFormatter(format = "0.%")
 
-	output_file("fig7.html")
-	show(p)
+	return(p)
 
 if __name__ == "__main__":
 	conn = Init(timeout = 1000).connect()
@@ -434,8 +449,8 @@ if __name__ == "__main__":
 	#fig3("logs-advancedsearch", conn)
 	#fig4("logs-advancedsearch", conn)
 	#fig5("logs-advancedsearch", conn)
-	#fig6("logs-advancedsearch", conn)
-	fig7("logs-advancedsearch", conn, "collection")
+	fig6(conn, "logs-advancedsearch")
+	#fig7("logs-advancedsearch", conn, "collection")
 	#fig7("logs-advancedsearch", conn, "clientdomain")
 	#fig1("logs-advancedsearch", conn, exclude = True)
 	#fig2("logs-advancedsearch", conn, exclude = True)

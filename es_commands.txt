@@ -1,0 +1,158 @@
+##
+# cat the info of all indices, verbosely
+#
+GET  /_cat/indices?v
+
+##
+# get the running tasks of ES, i.e., if you want to see how long has the search been running.
+#
+GET _tasks
+
+##
+# get the stats of this node
+#
+GET _nodes/stats/indices
+
+##
+# get the mapping of logs-tomcat, i.e., which field is int, which is str, which is bool etc.
+#
+GET logs-tomcat/_mapping/
+
+##
+# get the detailed info of current *search* task
+#
+GET _tasks?actions=*search*&detailed
+
+##
+# enable cache for query. *this should be enabled by default*
+#
+PUT /logs-tomcat/_settings
+{ "index.requests.cache.enable": true }
+
+##
+# clear the cache for query. By default, if a query is cached, it will not be updated until the index has been updated
+#
+POST /logs-tomcat/_cache/clear?request_cache=true
+
+##
+# cacel a specific task. AZ7E8kufTKa5hH26VNAlrQ is the node id for elk.canfar.net, 57799799 is job id.
+#
+POST _tasks/AZ7E8kufTKa5hH26VNAlrQ:57799799/_cancel
+
+##
+# cancel all *search* jobs of AZ7E8kufTKa5hH26VNAlrQ
+#
+POST _tasks/_cancel?nodes=AZ7E8kufTKa5hH26VNAlrQ&actions=*search*
+
+##
+# cluster health. You will be seeing a lot of "yellow", as the replica shards are not backed up, since we only have one node.
+# for the same reason, index with replica = 0 will have status of "green"
+#
+GET /_cluster/health
+
+##
+# delete an index.
+# apache lucene is immutable so there is no really a way of deleting things (oh well, its actully not being deleted until the index segment gets merged, but thats not usually managed by users, even though its managable).
+# what happens to when you send a delete document request is that, a "deleted" flag will be set for that document
+# so when the search query next time encounter this document, it will skip; but the disk being occupied will not be released
+# so if someone messed things up, the tidest way is actually to drop the entire index (but very costly)
+#
+DELETE /logs-tomcat-new?pretty
+
+##
+# create an new index called logs-tomcat-new, with 10 shards, 1 relica
+# and explicitly specify "from" to be "ip"
+#
+PUT logs-tomcat-new
+{
+    "settings" : {
+        "index" : {
+            "number_of_shards" : 10,
+            "number_of_replicas" : 1
+        }
+    },
+    "mappings": {
+      "_default_": {
+        "properties": {
+          "from": {
+            "type": "ip"
+          }
+        }
+      }
+    }  
+}
+
+##
+# reindex logs-tomcat to logs-tomcat-new
+# "conflicts": "proceed" and "version_type": "external" can been seen as two enforcing constraints
+# but usually not necessary, as two index must be completely different (means not really any conflicts)
+#
+POST _reindex
+{
+  "conflicts": "proceed",
+  "source": {
+    "index": "logs-tomcat"
+  },
+  "dest": {
+    "index": "logs-tomcat-new",
+    "version_type": "external"
+  }
+}
+
+##
+# say you have a new index called logs-test-new, which is indexed from logs-test
+# by using alias, just like shell alias, you can shift all apps that relies on logs-test onto logs-test-new
+# so the reindexing can be seaminglessly
+#
+POST /_aliases
+{
+    "actions" : [
+        { "add" : { "index" : "logs-advancedsearch-new", "alias" : "logs-advancedsearch" } }
+    ]
+}
+
+##
+# oh well, im playing with stuff...
+# create new index "test", type "test_doc", doc id "1"
+#    
+PUT test/test_doc/1
+{
+    "id" : "test1",
+    "ip" : "192.168.10.123",
+    "path": "fuck/you/elasticsearch"
+}
+
+PUT test/test_doc/2
+{
+    "id" : "test2",
+    "ip" : "206.12.59.36",
+    "path":"some/path/just/to/make/my/life/100x/worse"
+}
+
+PUT test/test_doc/3
+{
+    "id" : "test3",
+    "ip" : "132.246.194.10"
+}
+
+PUT test/test_doc/4
+{
+    "id" : "test4",
+    "ip" : "23.234.101.32"
+}
+
+##
+# a search example
+# which is the Query DSL that used in my plotting lib
+#
+GET /test2/test_doc/_search
+{
+  "query" : {
+    "bool" : {
+      "must": [
+        //{ "term": { "id": { "value": "test4" } } },
+       { "prefix" : { "ip" : "1" } }
+      ]
+    }
+  }
+}

@@ -88,11 +88,10 @@ def fig1(conn):
 
 		plts.append(p)
 
-	output_file("fig1.html")
-	show(column(plts))
+	return column(plts)
 
 # OpenStack Usage per CANFAR Project (2015-2016)
-def fig2(idx, conn):
+def fig2(conn, idx):
 	query = {
 		"query" : {
 			"bool" : {
@@ -130,6 +129,8 @@ def fig2(idx, conn):
 		coreyr = _["coreyr"]["value"]
 		df = df.append(pd.DataFrame([[proj, coreyr]], columns = ["proj", "Core Year"]))
 
+	df["proj"] = df["proj"].str.replace("canfar-", "")
+	df = df[df["Core Year"] > 0]	
 	df = df[df.proj != "CANFAR"].set_index("proj").sort_values("Core Year")
 
 	y = [_ for _ in range(len(df))]
@@ -149,8 +150,8 @@ def fig2(idx, conn):
 	p.yaxis[0].axis_label = "Projects"
 	p.legend.location = "bottom_right"
 	p.title.text = "OpenStack Usage per CANFAR Project (2015-2016)"
-	output_file("fig2.html")
-	show(p)
+	
+	return p
 
 # Jobs CPU Usage and VM CPU Usage for Batch Processing (2015-2016)
 def fig3(conn):
@@ -191,10 +192,10 @@ def fig3(conn):
 	df = pd.DataFrame()
 
 	for _ in res["aggregations"]["peryr"]["buckets"]:
-		proj = _["key_as_string"]
+		time = _["key_as_string"]
 		coreyr = _["coreyr"]["value"]
-		df = df.append(pd.DataFrame([[proj, coreyr]], columns = ["proj", "cy_os"]))
-	df = df.set_index("proj")
+		df = df.append(pd.DataFrame([[coreyr]], columns = ["cy_os"], index = [time]))
+
 	query2 = {
 		"query" : {
 			"bool" : {
@@ -229,10 +230,9 @@ def fig3(conn):
 	df2 = pd.DataFrame()
 
 	for _ in res2["aggregations"]["peryr"]["buckets"]:
-		proj = _["key_as_string"]
+		time = _["key_as_string"]
 		coreyr = _["coreyr"]["value"]
-		df2 = df2.append(pd.DataFrame([[proj, coreyr]], columns = ["proj", "cy_condor"]))
-	df2 = df2.set_index("proj")	
+		df2 = df2.append(pd.DataFrame([[coreyr]], columns = ["cy_condor"], index = [time]))
 
 	df = df.join(df2)		
 
@@ -256,12 +256,11 @@ def fig3(conn):
 	p.yaxis[0].axis_label = "Core Years"
 	p.legend.location = "top_left"
 	p.title.text = "Jobs CPU Usage and VM CPU Usage for Batch Processing (2015-2016)"
-	output_file("fig3.html")
-
-	show(p)
+	
+	return p
 
 # CPU Usage and Number of VMs for OpenStack Interactive
-def fig4(idx, conn):
+def fig4(conn, idx):
 	query = {
 		"query" : {
 			"bool" : {
@@ -318,7 +317,7 @@ def fig4(idx, conn):
 	p.y_range = Range1d(0, df["coreyr"].max() * 1.1)
 	p.extra_y_ranges = {"right_yaxis": Range1d(0, df["nserver"].max() * 1.1)}
 	p.add_layout(LinearAxis(y_range_name = "right_yaxis", axis_label = "Number of VM Launched"), "right")
-	p.yaxis.axis_label = "CPU Usage (core days)"
+	p.yaxis[0].axis_label = "CPU Usage (core days)"
 	p.vbar(x = x + 0.2, top = df["nserver"], bottom = 0, width = 0.4, legend = "Number of VMs", color = "purple", y_range_name = "right_yaxis")
 	p.legend.location = "top_left"
 	d = dict(zip(x, df.index))
@@ -332,8 +331,8 @@ def fig4(idx, conn):
     }""")
 	p.xaxis.major_label_orientation = np.pi / 4
 	p.title.text = "CPU Usage and Number of VMs for OpenStack Interactive"
-	output_file("fig4.html")
-	show(p)
+	
+	return p
 
 if __name__ == "__main__":
 	conn = Init(timeout = 300).connect()
