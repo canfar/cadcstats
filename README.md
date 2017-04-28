@@ -30,5 +30,6 @@
   * Jupyter notebooks that used to host all the services plots.
 
 8. __@seb__:
+  * For the unique file downloaded stats, i don't have a plot for that; however, under svc_plots dir, there is ```tomcat_old.fig7()``` that is not used anywhere. ```fig7()``` will do a query month by month, for the past two years, print the # of size of unique files. Again month by month actually reduces the computing over the server, compared to do two years at one time.
   * The certificates are under my home dir. All important stuff are either under my home dir or ```/data/```. Processed ```HTCondor``` and ```Tomcat``` logs are uploaded to ```vos:cadcstats```.
   * I have included some common Elasticsearch API commands in a seperate text file, ```es_commands.txt```. I found those commands very handy. The console portal on Kibana is very helpful when you have some ideas to try.
