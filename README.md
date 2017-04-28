@@ -5,7 +5,7 @@
   * ```condor-es.conf```: The configuration file for Logstash.
 
 2. tomcat 
-  * ```tomcat_parser.py```: Reads from proc gz logs and parse useful lines into line-based JSON format. Usage: ```$ python3 tomcat_parser.py -f $FILE_IN -json```. ```$FILE_IN``` must be the ```gzip``` tomcat logs.
+  * ```tomcat_parser.py```: Reads from tomcat gzipped logs and parse useful lines into line-based JSON format. Usage: ```$ python3 tomcat_parser.py -f $FILE_IN -json```. ```$FILE_IN``` must be the ```gzip``` tomcat logs.
   * There are two outputs: ```$FILE_IN.json``` and ```$FILE_IN.err```. The former is the line-based JSON and the later is a debug file contains the line number that the parser fails to parse, for what reason it fails, and the original raw string to be analyzed. 
   * The debug function (```-redo``` flag) is __experimental__, as it relies on grepping info from the file name, with the path to the log files being hard coded in the script. 
   * ```tomcat-es.conf```: The corresponding config for Logstash.
