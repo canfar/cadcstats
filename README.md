@@ -31,3 +31,4 @@
 
 8. __@seb__:
   * The certificates are under my home dir. All important stuff are either under my home dir or ```/data/```. Processed ```HTCondor``` and ```Tomcat``` logs are uploaded to ```vos:cadcstats```.
+  * I have included some common Elasticsearch API commands in a seperate text file, ```es_commands.txt```. I found those commands very handy. The console portal on Kibana is very helpful when you have some ideas to try.
