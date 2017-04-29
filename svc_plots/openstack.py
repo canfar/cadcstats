@@ -14,7 +14,7 @@ from bokeh.layouts import gridplot, column, row
 
 proj_categ = {'androphot': 'Galaxies', 'astroai': 'Solar and Stellar', 'ATP_Mechanics': 'Instrumentation and Methods', 'ATP_Software': 'Instrumentation and Methods', 'aot': 'Instrumentation and Methods', 'cadc': 'CANFAR', 'moproc': 'CANFAR', 'HST_RW': 'CANFAR', 'ots': 'Cosmology', 'willott': 'CANFAR', 'CANFAR': 'CANFAR', 'CANFAROps': 'CANFAR', 'CANFAR_east': 'CANFAR', 'CANFAROps_east': 'CANFAR', 'canarie': 'CANFAR', 'cesharon': 'Galaxies', 'cfht': 'CANFAR', 'clauds': 'Galaxies', 'cyberska': 'CANFAR', 'dao': 'CANFAR', 'debris': 'Solar and Stellar', 'dragonfly': 'Galaxies', 'EAO': 'CANFAR', 'jsa': 'CANFAR', 'gpi': 'Earth and Planetary', 'JCMT_GBS': 'Solar and Stellar', 'karun': 'Galaxies', 'mwsynthesis': 'Solar and Stellar', 'ngvs': 'Galaxies', 'nugrid_admin': 'Solar and Stellar', 'nvulic': 'Galaxies', 'OSSOS_Worker': 'Earth and Planetary', 'pandas': 'Galaxies', 'pscicluna': 'Solar and Stellar', 'rpike': 'Earth and Planetary', 'UVic_KBOs': 'Earth and Planetary', 'scuba2': 'Solar and Stellar', 'seti': 'Earth and Planetary', 'shaimaaali': 'Cosmology', 'TAOSII': 'Earth and Planetary', 'thor': 'Solar and Stellar', 'uvgc': 'Solar and Stellar'}
 
-es = 'http://elastic:cadcstats@206.12.59.36:9200'
+es = 'http://users:cadcusers@206.12.59.36:9200'
 
 class Init():
 	def __init__(self, url = None, timeout = 120):

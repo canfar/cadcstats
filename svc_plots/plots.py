@@ -3,7 +3,7 @@ from bokeh.plotting import output_notebook, show
 from elasticsearch import Elasticsearch
 import requests
 
-es = 'http://elastic:cadcstats@elk.canfar.net:9200'
+es = 'http://users:cadcusers@206.12.59.36:9200'
 
 class Init():
 	def __init__(self, url = None, timeout = 120):

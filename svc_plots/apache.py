@@ -13,7 +13,7 @@ from bokeh.layouts import gridplot, column, row
 from bokeh.charts.attributes import cat, color
 from bokeh.charts.operations import blend
 
-es = 'http://elastic:cadcstats@206.12.59.36:9200'
+es = 'http://users:cadcusers@206.12.59.36:9200'
 clr = ["blue", "purple", "orange", "green"]
 
 class Init():

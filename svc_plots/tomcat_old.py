@@ -13,7 +13,7 @@ from bokeh.layouts import gridplot, column, row
 
 
 odin = 'http://odin.cadc.dao.nrc.ca:9200'
-my_es = "http://elastic:cadcstats@206.12.59.36:9200"
+my_es = 'http://users:cadcusers@206.12.59.36:9200'
 
 class Init():
 	def __init__(self, url = my_es, timeout = 120):

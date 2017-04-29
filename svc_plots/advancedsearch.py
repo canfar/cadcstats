@@ -14,7 +14,7 @@ from bokeh.layouts import gridplot, column, row
 
 fields = ["observation_id","pi_name","proposal_id","proposal_title","proposal_keyword","data_release_date_public","data_release_date","observation_intention","target","target_upload","pixel_scale_left","pixel_scale_right","observation_date_left","observation_date_right","integration_time","time_span","spactral_coverage_left","spactral_coverage_right","spactral_sampling_left","spactral_sampling_right","resolving_power_left","resolving_power_right","bandpass_width_left","bandpass_width_right","rest_frame_energy_left","rest_frame_energy_right","band","collection","instrument","filter","calibration_level","data_type","observation_type"]
 
-es = 'http://elastic:cadcstats@206.12.59.36:9200'
+es = 'http://users:cadcusers@206.12.59.36:9200'
 
 class Init():
 	def __init__(self, url = None, timeout = 120):

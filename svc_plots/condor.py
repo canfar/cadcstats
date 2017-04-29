@@ -15,7 +15,7 @@ from bokeh.charts import Bar, Donut
 from bokeh.layouts import gridplot, column, row
 
 
-es = 'http://elastic:cadcstats@206.12.59.36:9200'
+es = 'http://users:cadcusers@206.12.59.36:9200'
 
 class Init():
 	def __init__(self, url = None, timeout = 120):
