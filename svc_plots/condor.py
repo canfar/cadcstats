@@ -478,20 +478,24 @@ def fig7(conn, idx):
 
 	for _ in res["aggregations"]["peryr"]["buckets"]:
 		yr = _["key_as_string"]
+		num_jobs = _["doc_count"]
 		jobs_per_ins = _["doc_count"] / _["vm_ins"]["value"]
 		ram_per_ins = _["tot_ram"]["value"] / _["vm_ins"]["value"] / 1024
 		dsk_per_ins = _["tot_dsk"]["value"] / _["vm_ins"]["value"] / 1024
-		df = df.append(pd.DataFrame([[jobs_per_ins, ram_per_ins, dsk_per_ins]], columns = ["jobs", "ram", "dsk"], index = [yr]))
+		df = df.append(pd.DataFrame([[num_jobs, jobs_per_ins, ram_per_ins, dsk_per_ins]], columns = ["num_jobs", "jobs", "ram", "dsk"], index = [yr]))
 
 	plts = [Div(text = "<h1>Basic Stats</h1>", width = 1200)]
 	clr = ["blue", "purple", "orange", "green"]
-	ylabs = ["", "GB", "GB"]
+	ylabs = ["", "", "GB", "GB"]
 	ttl = ["Number of Jobs Completed", "Disk Usage", "Memory Usage"]
 	x = [_ for _ in range(len(df))]
 	for i in range(len(df.columns)):
 		p = figure(plot_width = 800, toolbar_location = "above")
 		p.vbar(x = x, top = df.ix[:,i], bottom = 0, width = 0.8, color = clr[i])
-		p.title.text = "{} per VM Instance".format(ttl[i])
+		if i == 0:
+			p.title.text = "Number of Jobs per Year"
+		else:	
+			p.title.text = "{} per VM Instance".format(ttl[i - 1])
 		p.yaxis[0].axis_label = ylabs[i]
 		d = dict(zip(x, df.index))
 		p.xaxis[0].ticker = FixedTicker(ticks = x)
